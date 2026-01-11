@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.Extensions.Logging;
 using OsService.Domain.Entities;
 using OsService.Domain.Enums;
 using OsService.Infrastructure.Repository;
@@ -8,7 +9,8 @@ namespace OsService.Services.V1.ServiceOrders.OpenServiceOrder;
 
 public sealed class OpenServiceOrderHandler(
     ICustomerRepository customers,
-    IServiceOrderRepository serviceOrders)
+    IServiceOrderRepository serviceOrders,
+    ILogger<OpenServiceOrderHandler> logger)
     : IRequestHandler<OpenServiceOrderCommand, (Guid Id, int Number)>
 {
     public async Task<(Guid Id, int Number)> Handle(OpenServiceOrderCommand request, CancellationToken ct)
@@ -40,6 +42,14 @@ public sealed class OpenServiceOrderHandler(
             UpdatedPriceAt = request.Price.HasValue ? now : null
         };
 
-        return await serviceOrders.InsertAndReturnNumberAsync(so, ct);
+        var result = await serviceOrders.InsertAndReturnNumberAsync(so, ct);
+
+        logger.ServiceOrderOpened(
+            result.Id,
+            result.Number,
+            request.CustomerId,
+            so.Price);
+
+        return result;
     }
 }

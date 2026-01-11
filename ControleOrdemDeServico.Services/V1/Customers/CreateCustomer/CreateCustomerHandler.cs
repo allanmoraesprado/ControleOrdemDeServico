@@ -1,13 +1,15 @@
 ﻿using MediatR;
+using Microsoft.Extensions.Logging;
 using OsService.Domain.Entities;
 using OsService.Infrastructure.Repository;
+using OsService.Services.Exceptions;
 using System.Text.RegularExpressions;
 
 namespace OsService.Services.V1.Customers.CreateCustomer;
 
-using OsService.Services.Exceptions;
-
-public sealed class CreateCustomerHandler(ICustomerRepository repo)
+public sealed class CreateCustomerHandler(
+    ICustomerRepository repo,
+    ILogger<CreateCustomerHandler> logger)
     : IRequestHandler<CreateCustomerCommand, Guid>
 {
     private static readonly Regex EmailRegex =
@@ -62,6 +64,13 @@ public sealed class CreateCustomerHandler(ICustomerRepository repo)
         };
 
         await repo.InsertAsync(customer, ct);
+
+        logger.CustomerCreated(
+            customer.Id,
+            customer.Name,
+            customer.Phone,
+            customer.Document);
+
         return customer.Id;
     }
 }

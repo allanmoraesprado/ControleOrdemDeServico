@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.Extensions.Logging;
 using OsService.Domain.Enums;
 using OsService.Infrastructure.Repository;
 using OsService.Services.Exceptions;
@@ -6,7 +7,9 @@ using OsService.Services.V1.ServiceOrders.Dtos;
 
 namespace OsService.Services.V1.ServiceOrders.ChangeStatus;
 
-public sealed class ChangeServiceOrderStatusHandler(IServiceOrderRepository repo)
+public sealed class ChangeServiceOrderStatusHandler(
+    IServiceOrderRepository repo,
+    ILogger<ChangeServiceOrderStatusHandler> logger)
     : IRequestHandler<ChangeServiceOrderStatusCommand, ServiceOrderDto>
 {
     public async Task<ServiceOrderDto> Handle(
@@ -64,6 +67,11 @@ public sealed class ChangeServiceOrderStatusHandler(IServiceOrderRepository repo
 
         var updated = await repo.GetByIdAsync(entity.Id, ct)
                       ?? throw new InvalidOperationException("Service order not found after status update.");
+
+        logger.ServiceOrderStatusChanged(
+            updated.Id,
+            current,
+            desired);
 
         return ServiceOrderDto.FromEntity(updated);
     }
