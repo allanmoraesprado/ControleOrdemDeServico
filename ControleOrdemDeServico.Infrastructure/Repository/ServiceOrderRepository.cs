@@ -108,4 +108,31 @@ public sealed class ServiceOrderRepository(IDefaultSqlConnectionFactory factory)
 
         return rows.ToList();
     }
+
+    public async Task UpdateStatusAsync(
+        Guid id,
+        ServiceOrderStatus status,
+        DateTime? startedAt,
+        DateTime? finishedAt,
+        CancellationToken ct)
+    {
+        const string sql = @"
+            UPDATE dbo.ServiceOrders
+            SET Status     = @Status,
+                StartedAt  = @StartedAt,
+                FinishedAt = @FinishedAt
+            WHERE Id = @Id;";
+
+        using var conn = factory.Create();
+        await conn.ExecuteAsync(new CommandDefinition(
+            sql,
+            new
+            {
+                Id = id,
+                Status = (int)status,
+                StartedAt = startedAt,
+                FinishedAt = finishedAt
+            },
+            cancellationToken: ct));
+    }
 }

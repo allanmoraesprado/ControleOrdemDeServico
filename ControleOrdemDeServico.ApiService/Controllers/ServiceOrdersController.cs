@@ -1,6 +1,8 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using OsService.ApiService.V1.ServiceOrders.Dtos;
 using OsService.Domain.Enums;
+using OsService.Services.V1.ServiceOrders.ChangeStatus;
 using OsService.Services.V1.ServiceOrders.GetServiceOrderById;
 using OsService.Services.V1.ServiceOrders.OpenServiceOrder;
 using OsService.Services.V1.ServiceOrders.SearchServiceOrders;
@@ -42,5 +44,17 @@ public sealed class ServiceOrdersController(IMediator mediator) : ControllerBase
             new SearchServiceOrdersQuery(customerId, status, from, to), ct);
 
         return Ok(items);
+    }
+
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> ChangeStatus(
+        Guid id,
+        [FromBody] ChangeServiceOrderStatusDto body,
+        CancellationToken ct)
+    {
+        var dto = await mediator.Send(
+            new ChangeServiceOrderStatusCommand(id, body.Status), ct);
+
+        return Ok(dto);
     }
 }

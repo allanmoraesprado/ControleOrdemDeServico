@@ -12,7 +12,9 @@ public sealed record ServiceOrderDto(
     DateTime OpenedAt,
     decimal? Price,
     string Coin,
-    DateTime? UpdatedPriceAt)
+    DateTime? UpdatedPriceAt,
+    DateTime? StartedAt,
+    DateTime? FinishedAt)
 {
     public static ServiceOrderDto FromEntity(ServiceOrderEntity e) =>
         new(
@@ -24,6 +26,8 @@ public sealed record ServiceOrderDto(
             e.OpenedAt,
             e.Price,
             e.Coin ?? "BRL",
-            e.UpdatedPriceAt
+            e.UpdatedPriceAt,
+            e.StartedAt,
+            e.FinishedAt
         );
 }

@@ -8,6 +8,13 @@ public interface IServiceOrderRepository
     Task<(Guid Id, int Number)> InsertAndReturnNumberAsync(ServiceOrderEntity so, CancellationToken ct);
     Task<ServiceOrderEntity?> GetByIdAsync(Guid id, CancellationToken ct);
 
+    Task UpdateStatusAsync(
+        Guid id,
+        ServiceOrderStatus status,
+        DateTime? startedAt,
+        DateTime? finishedAt,
+        CancellationToken ct);
+
     Task<IReadOnlyList<ServiceOrderEntity>> SearchAsync(
         Guid? customerId,
         ServiceOrderStatus? status,
