@@ -30,7 +30,6 @@ public sealed class ChangeServiceOrderStatusHandler(IServiceOrderRepository repo
         var startedAt = entity.StartedAt;
         var finishedAt = entity.FinishedAt;
 
-        // Regras de transição
         switch (current)
         {
             case ServiceOrderStatus.Open when desired == ServiceOrderStatus.InProgress:
@@ -39,8 +38,15 @@ public sealed class ChangeServiceOrderStatusHandler(IServiceOrderRepository repo
                 break;
 
             case ServiceOrderStatus.InProgress when desired == ServiceOrderStatus.Finished:
+                if (entity.Price is null)
+                    throw new ValidationException("Price is required to finish the service order.");
+
+                if (entity.Price < 0)
+                    throw new ValidationException("Price cannot be negative.");
+
                 if (startedAt is null)
                     startedAt = now;
+
                 finishedAt = now;
                 break;
 
@@ -56,7 +62,6 @@ public sealed class ChangeServiceOrderStatusHandler(IServiceOrderRepository repo
 
         await repo.UpdateStatusAsync(entity.Id, desired, startedAt, finishedAt, ct);
 
-        // Recarrega pra devolver DTO consistente
         var updated = await repo.GetByIdAsync(entity.Id, ct)
                       ?? throw new InvalidOperationException("Service order not found after status update.");
 

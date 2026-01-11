@@ -15,6 +15,13 @@ public interface IServiceOrderRepository
         DateTime? finishedAt,
         CancellationToken ct);
 
+    Task UpdatePriceAsync(
+        Guid id,
+        decimal? price,
+        string coin,
+        DateTime? updatedPriceAt,
+        CancellationToken ct);
+
     Task<IReadOnlyList<ServiceOrderEntity>> SearchAsync(
         Guid? customerId,
         ServiceOrderStatus? status,

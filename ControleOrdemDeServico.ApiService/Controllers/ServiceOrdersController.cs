@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using OsService.ApiService.V1.ServiceOrders.Dtos;
 using OsService.Domain.Enums;
+using OsService.Services.V1.ServiceOrders.ChangePrice;
 using OsService.Services.V1.ServiceOrders.ChangeStatus;
+using OsService.Services.V1.ServiceOrders.Dtos;
 using OsService.Services.V1.ServiceOrders.GetServiceOrderById;
 using OsService.Services.V1.ServiceOrders.OpenServiceOrder;
 using OsService.Services.V1.ServiceOrders.SearchServiceOrders;
@@ -54,6 +56,18 @@ public sealed class ServiceOrdersController(IMediator mediator) : ControllerBase
     {
         var dto = await mediator.Send(
             new ChangeServiceOrderStatusCommand(id, body.Status), ct);
+
+        return Ok(dto);
+    }
+
+    [HttpPatch("{id:guid}/price")]
+    public async Task<IActionResult> ChangePrice(
+        Guid id,
+        [FromBody] ChangeServiceOrderPriceDto body,
+        CancellationToken ct)
+    {
+        var dto = await mediator.Send(
+            new ChangeServiceOrderPriceCommand(id, body.Price), ct);
 
         return Ok(dto);
     }

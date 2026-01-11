@@ -19,6 +19,9 @@ public sealed class OpenServiceOrderHandler(
         if (string.IsNullOrWhiteSpace(request.Description) || request.Description.Length > 500)
             throw new ValidationException("Description is required and must be <= 500 chars.");
 
+        if (request.Price is < 0)
+            throw new ValidationException("Price cannot be negative.");
+
         var exists = await customers.ExistsAsync(request.CustomerId, ct);
         if (!exists)
             throw new KeyNotFoundException("Customer not found.");
@@ -31,7 +34,7 @@ public sealed class OpenServiceOrderHandler(
             CustomerId = request.CustomerId,
             Description = request.Description.Trim(),
             Status = ServiceOrderStatus.Open,
-            OpenedAt = now,                    
+            OpenedAt = now,
             Price = request.Price,
             Coin = "BRL",
             UpdatedPriceAt = request.Price.HasValue ? now : null

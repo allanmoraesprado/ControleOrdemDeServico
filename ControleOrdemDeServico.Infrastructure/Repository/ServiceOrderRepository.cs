@@ -135,4 +135,31 @@ public sealed class ServiceOrderRepository(IDefaultSqlConnectionFactory factory)
             },
             cancellationToken: ct));
     }
+
+    public async Task UpdatePriceAsync(
+        Guid id,
+        decimal? price,
+        string coin,
+        DateTime? updatedPriceAt,
+        CancellationToken ct)
+    {
+        const string sql = @"
+            UPDATE dbo.ServiceOrders
+            SET Price          = @Price,
+                Coin           = @Coin,
+                UpdatedPriceAt = @UpdatedPriceAt
+            WHERE Id = @Id;";
+
+        using var conn = factory.Create();
+        await conn.ExecuteAsync(new CommandDefinition(
+            sql,
+            new
+            {
+                Id = id,
+                Price = price,
+                Coin = coin,
+                UpdatedPriceAt = updatedPriceAt
+            },
+            cancellationToken: ct));
+    }
 }
