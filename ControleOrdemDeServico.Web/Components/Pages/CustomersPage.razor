@@ -1,0 +1,166 @@
+﻿@page "/customers"
+@inject OsServiceApiClient Api
+
+<h1>Customers</h1>
+
+<h3>Create customer</h3>
+
+@if (!string.IsNullOrEmpty(_createError))
+{
+    <div class="alert alert-danger">@_createError</div>
+}
+@if (!string.IsNullOrEmpty(_createSuccess))
+{
+    <div class="alert alert-success">@_createSuccess</div>
+}
+
+<div class="card p-3 mb-4">
+    <div class="mb-2">
+        <label class="form-label">Name *</label>
+        <input class="form-control" @bind="_createModel.Name" />
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Phone</label>
+        <input class="form-control" @bind="_createModel.Phone" />
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Email</label>
+        <input class="form-control" @bind="_createModel.Email" />
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Document</label>
+        <input class="form-control" @bind="_createModel.Document" />
+    </div>
+    <button class="btn btn-primary" @onclick="CreateCustomerAsync">Create</button>
+</div>
+
+<h3>Find customer</h3>
+
+<div class="card p-3 mb-3">
+    <div class="mb-2">
+        <label class="form-label">Id</label>
+        <input class="form-control" @bind="_searchById" />
+    </div>
+    <button class="btn btn-secondary me-2" @onclick="GetCustomerByIdAsync">Get by Id</button>
+</div>
+
+<div class="card p-3 mb-3">
+    <div class="mb-2">
+        <label class="form-label">Phone</label>
+        <input class="form-control" @bind="_searchPhone" />
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Document</label>
+        <input class="form-control" @bind="_searchDocument" />
+    </div>
+    <button class="btn btn-secondary" @onclick="SearchCustomerAsync">Search by phone/document</button>
+</div>
+
+@if (_currentCustomer is not null)
+{
+    <h3>Customer details</h3>
+    <div class="card p-3">
+        <p><b>Id:</b> @_currentCustomer.Id</p>
+        <p><b>Name:</b> @_currentCustomer.Name</p>
+        <p><b>Phone:</b> @_currentCustomer.Phone</p>
+        <p><b>Email:</b> @_currentCustomer.Email</p>
+        <p><b>Document:</b> @_currentCustomer.Document</p>
+        <p><b>Created at (UTC):</b> @_currentCustomer.CreatedAt</p>
+    </div>
+}
+
+@code {
+    private CreateCustomerModel _createModel = new();
+    private string? _createError;
+    private string? _createSuccess;
+
+    private string? _searchById;
+    private string? _searchPhone;
+    private string? _searchDocument;
+
+    private CustomerResponse? _currentCustomer;
+
+    private sealed class CreateCustomerModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Document { get; set; }
+    }
+
+    private async Task CreateCustomerAsync()
+    {
+        _createError = null;
+        _createSuccess = null;
+
+        try
+        {
+            var req = new CreateCustomerRequest(
+                _createModel.Name,
+                _createModel.Phone,
+                _createModel.Email,
+                _createModel.Document);
+
+            var id = await Api.CreateCustomerAsync(req);
+            _createSuccess = $"Customer created with Id {id}.";
+            _currentCustomer = await Api.GetCustomerByIdAsync(id);
+        }
+        catch (HttpRequestException ex)
+        {
+            _createError = $"Error calling API: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+        }
+    }
+
+    private async Task GetCustomerByIdAsync()
+    {
+        _currentCustomer = null;
+
+        if (!Guid.TryParse(_searchById, out var id))
+        {
+            _createError = "Invalid GUID for Id.";
+            return;
+        }
+
+        _createError = null;
+        _createSuccess = null;
+
+        try
+        {
+            _currentCustomer = await Api.GetCustomerByIdAsync(id);
+            if (_currentCustomer is null)
+                _createError = "Customer not found.";
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+        }
+    }
+
+    private async Task SearchCustomerAsync()
+    {
+        _createError = null;
+        _createSuccess = null;
+        _currentCustomer = null;
+
+        try
+        {
+            var result = await Api.SearchCustomerAsync(_searchPhone, _searchDocument);
+            if (result is null)
+            {
+                _createError = "Customer not found.";
+            }
+            else
+            {
+                _currentCustomer = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+        }
+    }
+}

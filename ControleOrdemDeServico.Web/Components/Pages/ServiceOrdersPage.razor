@@ -1,0 +1,144 @@
+﻿@page "/service-orders"
+@inject OsServiceApiClient Api
+
+<h1>Service Orders</h1>
+
+<h3>Open service order</h3>
+
+@if (!string.IsNullOrEmpty(_openError))
+{
+    <div class="alert alert-danger">@_openError</div>
+}
+@if (!string.IsNullOrEmpty(_openSuccess))
+{
+    <div class="alert alert-success">@_openSuccess</div>
+}
+
+<div class="card p-3 mb-4">
+    <div class="mb-2">
+        <label class="form-label">Customer Id *</label>
+        <input class="form-control" @bind="_openModel.CustomerId" />
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Description *</label>
+        <textarea class="form-control" @bind="_openModel.Description"></textarea>
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Initial Price (optional)</label>
+        <input class="form-control" @bind="_openModel.Price" />
+    </div>
+    <button class="btn btn-primary" @onclick="OpenServiceOrderAsync">Open</button>
+</div>
+
+<h3>Find service order</h3>
+
+<div class="card p-3 mb-3">
+    <div class="mb-2">
+        <label class="form-label">Service order Id</label>
+        <input class="form-control" @bind="_searchSoId" />
+    </div>
+    <button class="btn btn-secondary" @onclick="GetServiceOrderByIdAsync">Get by Id</button>
+</div>
+
+@if (_currentSo is not null)
+{
+    <h3>Service order details</h3>
+    <div class="card p-3">
+        <p><b>Id:</b> @_currentSo.Id</p>
+        <p><b>Number:</b> @_currentSo.Number</p>
+        <p><b>CustomerId:</b> @_currentSo.CustomerId</p>
+        <p><b>Description:</b> @_currentSo.Description</p>
+        <p><b>Status:</b> @_currentSo.Status</p>
+        <p><b>Opened at (UTC):</b> @_currentSo.OpenedAt</p>
+        <p><b>Price:</b> @_currentSo.Price</p>
+        <p><b>Coin:</b> @_currentSo.Coin</p>
+        <p><b>Updated price at:</b> @_currentSo.UpdatedPriceAt</p>
+        <p><b>Started at:</b> @_currentSo.StartedAt</p>
+        <p><b>Finished at:</b> @_currentSo.FinishedAt</p>
+    </div>
+}
+
+@code {
+    private OpenServiceOrderModel _openModel = new();
+    private string? _openError;
+    private string? _openSuccess;
+
+    private string? _searchSoId;
+    private ServiceOrderResponse? _currentSo;
+
+    private sealed class OpenServiceOrderModel
+    {
+        public string CustomerId { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string? Price { get; set; }
+    }
+
+    private async Task OpenServiceOrderAsync()
+    {
+        _openError = null;
+        _openSuccess = null;
+
+        if (!Guid.TryParse(_openModel.CustomerId, out var customerId))
+        {
+            _openError = "Invalid GUID for CustomerId.";
+            return;
+        }
+
+        decimal? price = null;
+        if (!string.IsNullOrWhiteSpace(_openModel.Price))
+        {
+            if (!decimal.TryParse(_openModel.Price, out var parsed))
+            {
+                _openError = "Invalid price.";
+                return;
+            }
+
+            price = parsed;
+        }
+
+        try
+        {
+            var req = new OpenServiceOrderRequest(
+                customerId,
+                _openModel.Description,
+                price);
+
+            var result = await Api.OpenServiceOrderAsync(req);
+            _openSuccess = $"Service order opened. Number={result.Number}, Id={result.Id}";
+
+            _currentSo = await Api.GetServiceOrderByIdAsync(result.Id);
+        }
+        catch (HttpRequestException ex)
+        {
+            _openError = $"Error calling API: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            _openError = ex.Message;
+        }
+    }
+
+    private async Task GetServiceOrderByIdAsync()
+    {
+        _openError = null;
+        _openSuccess = null;
+        _currentSo = null;
+
+        if (!Guid.TryParse(_searchSoId, out var id))
+        {
+            _openError = "Invalid GUID for service order Id.";
+            return;
+        }
+
+        try
+        {
+            _currentSo = await Api.GetServiceOrderByIdAsync(id);
+            if (_currentSo is null)
+                _openError = "Service order not found.";
+        }
+        catch (Exception ex)
+        {
+            _openError = ex.Message;
+        }
+    }
+}
