@@ -1,6 +1,8 @@
-﻿using OsService.Services.V1.CreateCustomer;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using OsService.Services.V1.Customers.CreateCustomer;
+using OsService.Services.V1.Customers.GetCustomerById;
+using OsService.Services.V1.Customers.SearchCustomer;
 
 namespace OsService.ApiService.Controllers;
 
@@ -18,6 +20,18 @@ public sealed class CustomersController(IMediator mediator) : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
-        return Ok(new { id });
+        var customer = await mediator.Send(new GetCustomerByIdQuery(id), ct);
+        if (customer is null) return NotFound();
+        return Ok(customer);
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string? phone, [FromQuery] string? document, CancellationToken ct)
+    {
+        var customer = await mediator.Send(
+            new GetCustomerByPhoneOrDocumentQuery(phone, document), ct);
+
+        if (customer is null) return NotFound();
+        return Ok(customer);
     }
 }

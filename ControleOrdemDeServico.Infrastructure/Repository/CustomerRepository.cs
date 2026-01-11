@@ -10,31 +10,11 @@ namespace OsService.Infrastructure.Repository;
 
 public sealed class CustomerRepository(IDefaultSqlConnectionFactory factory) : ICustomerRepository
 {
-    public async Task<(Guid id, int number)> InsertAndReturnNumberAsync(ServiceOrderEntity so, CancellationToken ct)
-    {
-        const string sql = @"
-INSERT INTO dbo.ServiceOrders (Id, CustomerId, Description, Status, OpenedAt,Price,Coin)
-OUTPUT INSERTED.Id, INSERTED.Number
-VALUES (@Id, @CustomerId, @Description, @Status, @OpenedAt,@Price,@Coin);";
-
-        using var conn = factory.Create();
-        var row = await conn.QuerySingleAsync<(Guid Id, int Number)>(
-            new CommandDefinition(sql, new
-            {
-                so.Id,
-                so.CustomerId,
-                so.Description,
-                Status = (int)so.Status,
-                so.OpenedAt
-            }, cancellationToken: ct));
-
-        return (row.Id, row.Number);
-    }
     public async Task InsertAsync(CustomerEntity customer, CancellationToken ct)
     {
         const string sql = @"
-INSERT INTO dbo.Customers (Id, Name, Phone, Email, Document, CreatedAt)
-VALUES (@Id, @Name, @Phone, @Email, @Document, @CreatedAt);";
+            INSERT INTO dbo.Customers (Id, Name, Phone, Email, Document, CreatedAt)
+            VALUES (@Id, @Name, @Phone, @Email, @Document, @CreatedAt);";
 
         using var conn = factory.Create();
         await conn.ExecuteAsync(new CommandDefinition(sql, customer, cancellationToken: ct));
@@ -43,9 +23,9 @@ VALUES (@Id, @Name, @Phone, @Email, @Document, @CreatedAt);";
     public async Task<CustomerEntity?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         const string sql = @"
-SELECT Id, Name, Phone, Email, Document, CreatedAt
-FROM dbo.Customers
-WHERE Id = @Id;";
+            SELECT Id, Name, Phone, Email, Document, CreatedAt
+            FROM dbo.Customers
+            WHERE Id = @Id;";
 
         using var conn = factory.Create();
         return await conn.QuerySingleOrDefaultAsync<CustomerEntity>(
@@ -59,5 +39,36 @@ WHERE Id = @Id;";
         var exists = await conn.QueryFirstOrDefaultAsync<int?>(
             new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
         return exists.HasValue;
+    }
+
+    public async Task<bool> ExistsByDocumentAsync(string document, CancellationToken ct)
+    {
+        const string sql = "SELECT 1 FROM dbo.Customers WHERE Document = @Document;";
+        using var conn = factory.Create();
+        var exists = await conn.QueryFirstOrDefaultAsync<int?>(
+            new CommandDefinition(sql, new { Document = document }, cancellationToken: ct));
+        return exists.HasValue;
+    }
+
+    public async Task<bool> ExistsByPhoneAsync(string phone, CancellationToken ct)
+    {
+        const string sql = "SELECT 1 FROM dbo.Customers WHERE Phone = @Phone;";
+        using var conn = factory.Create();
+        var exists = await conn.QueryFirstOrDefaultAsync<int?>(
+            new CommandDefinition(sql, new { Phone = phone }, cancellationToken: ct));
+        return exists.HasValue;
+    }
+
+    public async Task<CustomerEntity?> GetByPhoneOrDocumentAsync(string? phone, string? document, CancellationToken ct)
+    {
+        const string sql = @"
+            SELECT TOP 1 Id, Name, Phone, Email, Document, CreatedAt
+            FROM dbo.Customers
+            WHERE (@Phone IS NOT NULL AND Phone = @Phone)
+               OR (@Document IS NOT NULL AND Document = @Document);";
+
+        using var conn = factory.Create();
+        return await conn.QuerySingleOrDefaultAsync<CustomerEntity>(
+            new CommandDefinition(sql, new { Phone = phone, Document = document }, cancellationToken: ct));
     }
 }

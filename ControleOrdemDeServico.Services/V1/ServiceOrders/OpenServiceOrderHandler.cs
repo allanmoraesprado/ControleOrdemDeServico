@@ -1,21 +1,23 @@
-﻿using OsService.Domain.Entities;
+﻿using MediatR;
+using OsService.Domain.Entities;
 using OsService.Domain.Enums;
 using OsService.Infrastructure.Repository;
-using MediatR;
+using System.ComponentModel.DataAnnotations;
 
-namespace OsService.Services.V1.CreateCustomer;
+namespace OsService.Services.V1.ServiceOrders;
 
 public sealed class OpenServiceOrderHandler(
-    ICustomerRepository customers
-) : IRequestHandler<OpenServiceOrderCommand, (Guid Id, int Number)>
+    ICustomerRepository customers,
+    IServiceOrderRepository serviceOrders)
+    : IRequestHandler<OpenServiceOrderCommand, (Guid Id, int Number)>
 {
     public async Task<(Guid Id, int Number)> Handle(OpenServiceOrderCommand request, CancellationToken ct)
     {
         if (request.CustomerId == Guid.Empty)
-            throw new ArgumentException("CustomerId is required.");
+            throw new ValidationException("CustomerId is required.");
 
         if (string.IsNullOrWhiteSpace(request.Description) || request.Description.Length > 500)
-            throw new ArgumentException("Description is required and must be <= 500 chars.");
+            throw new ValidationException("Description is required and must be <= 500 chars.");
 
         var exists = await customers.ExistsAsync(request.CustomerId, ct);
         if (!exists)
@@ -30,6 +32,6 @@ public sealed class OpenServiceOrderHandler(
             OpenedAt = DateTime.UtcNow
         };
 
-        return await customers.InsertAndReturnNumberAsync(so, ct);
+        return await serviceOrders.InsertAndReturnNumberAsync(so, ct);
     }
 }
