@@ -70,11 +70,11 @@ public sealed class ServiceOrdersController(
         return Ok(dto);
     }
 
-    [HttpPatch("{id:guid}/price")]
+    [HttpPut("{id:guid}/price")]
     public async Task<IActionResult> ChangePrice(
-        Guid id,
-        [FromBody] ChangeServiceOrderPriceDto body,
-        CancellationToken ct)
+    Guid id,
+    [FromBody] ChangeServiceOrderPriceDto body,
+    CancellationToken ct)
     {
         var dto = await mediator.Send(
             new ChangeServiceOrderPriceCommand(id, body.Price), ct);
