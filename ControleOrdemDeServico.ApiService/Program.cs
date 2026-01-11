@@ -17,14 +17,15 @@ builder.Services.AddMediatR(cfg =>
 
 builder.Services.AddSingleton<IDefaultSqlConnectionFactory>(_ =>
     new SqlConnectionFactory(
-        builder.Configuration.GetConnectionString("ConnectionStrings__DefaultConnection")!));
+        builder.Configuration.GetConnectionString("DefaultConnection")!));
 
 builder.Services.AddSingleton<IAdminSqlConnectionFactory>(_ =>
     new SqlConnectionFactory(
-        builder.Configuration.GetConnectionString("ConnectionStrings__CreateTable")!));
+        builder.Configuration.GetConnectionString("CreateTable")!));
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IServiceOrderRepository, ServiceOrderRepository>();
+builder.Services.AddScoped<IServiceOrderAttachmentRepository, ServiceOrderAttachmentRepository>();
 
 builder.Services.AddSingleton<DatabaseGenerantor>();
 

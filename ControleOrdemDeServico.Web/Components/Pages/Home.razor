@@ -1,7 +1,61 @@
 ﻿@page "/"
+<PageTitle>Service Orders</PageTitle>
 
-<PageTitle>Home</PageTitle>
+<div class="container py-4">
 
-<h1>Hello, world!</h1>
+    <h1 class="display-5 mb-2">Service Orders</h1>
+    <p class="text-muted mb-4">
+        Simple panel to manage customers and service orders for a small business.
+    </p>
 
-Welcome to your new app.
+    <div class="row g-3">
+
+        <!-- Customers card -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">Customers</h5>
+                    <p class="card-text text-muted">
+                        Register new customers and search by Id, phone or document.
+                    </p>
+
+                    <ul class="small text-muted mb-3">
+                        <li>Create customer</li>
+                        <li>Get customer by Id</li>
+                        <li>Search by phone / document</li>
+                    </ul>
+
+                    <NavLink href="customers"
+                             class="btn btn-primary mt-auto">
+                        Go to Customers
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+        <!-- Service orders card -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">Service Orders</h5>
+                    <p class="card-text text-muted">
+                        Open new service orders and track status and price.
+                    </p>
+
+                    <ul class="small text-muted mb-3">
+                        <li>Open service order</li>
+                        <li>Check current status</li>
+                        <li>View pricing information</li>
+                    </ul>
+
+                    <NavLink href="service-orders"
+                             class="btn btn-outline-primary mt-auto">
+                        Go to Service Orders
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
