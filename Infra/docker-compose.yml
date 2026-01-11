@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:4.1.5-management-alpine
+    container_name: rabbitmq
+    volumes:
+      - mq_data:/var/lib/rabbitmq/mnesia
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - osservices
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "SqlServer2024!Strong#"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/1433' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - osservices
+
+  osservices.apiservice:
+    build:
+      context: ../ControleOrdemDeServico.ApiService
+      dockerfile: Dockerfile
+    container_name: osservices-api
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=OsServiceDb;User Id=sa;Password=SqlServer2024!Strong#;TrustServerCertificate=True;Encrypt=False;"
+      ConnectionStrings__CreateTable: "Server=sqlserver,1433;Database=master;User Id=sa;Password=SqlServer2024!Strong#;TrustServerCertificate=True;Encrypt=False;"
+    ports:
+      - "5000:8080"
+    networks:
+      - osservices
+
+volumes:
+  mq_data:
+  sqlserver_data:
+
+networks:
+  osservices:
+    driver: bridge

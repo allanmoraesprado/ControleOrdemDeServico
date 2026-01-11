@@ -1,0 +1,7 @@
+services:
+  osservice.apiservice:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=5021
+    ports:
+      - "5021:5021"
