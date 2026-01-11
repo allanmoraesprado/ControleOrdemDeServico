@@ -1,9 +1,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiService = builder.AddProject<Projects.ControleOrdemDeServico_ApiService>("apiservice")
+var apiService = builder.AddProject<Projects.OsService_ApiService>("apiservice")
     .WithHttpHealthCheck("/health");
 
-builder.AddProject<Projects.ControleOrdemDeServico_Web>("webfrontend")
+builder.AddProject<Projects.OsService_Web>("webfrontend")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health")
     .WithReference(apiService)
