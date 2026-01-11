@@ -2,9 +2,9 @@
 using OsService.Domain.Entities;
 using OsService.Domain.Enums;
 using OsService.Infrastructure.Repository;
-using System.ComponentModel.DataAnnotations;
+using OsService.Services.Exceptions;
 
-namespace OsService.Services.V1.ServiceOrders;
+namespace OsService.Services.V1.ServiceOrders.OpenServiceOrder;
 
 public sealed class OpenServiceOrderHandler(
     ICustomerRepository customers,
@@ -23,13 +23,18 @@ public sealed class OpenServiceOrderHandler(
         if (!exists)
             throw new KeyNotFoundException("Customer not found.");
 
+        var now = DateTime.UtcNow;
+
         var so = new ServiceOrderEntity
         {
             Id = Guid.NewGuid(),
             CustomerId = request.CustomerId,
             Description = request.Description.Trim(),
             Status = ServiceOrderStatus.Open,
-            OpenedAt = DateTime.UtcNow
+            OpenedAt = now,                    
+            Price = request.Price,
+            Coin = "BRL",
+            UpdatedPriceAt = request.Price.HasValue ? now : null
         };
 
         return await serviceOrders.InsertAndReturnNumberAsync(so, ct);

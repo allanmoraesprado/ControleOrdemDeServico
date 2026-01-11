@@ -1,7 +1,8 @@
-﻿using OsService.Domain.Entities;
+﻿using Dapper;
+using OsService.Domain.Entities;
 using OsService.Domain.Enums;
 using OsService.Infrastructure.Databases;
-using Dapper;
+using System.Text;
 
 namespace OsService.Infrastructure.Repository;
 
@@ -58,5 +59,53 @@ public sealed class ServiceOrderRepository(IDefaultSqlConnectionFactory factory)
             Coin = raw.Coin,
             UpdatedPriceAt = raw.UpdatedPriceAt
         };
+    }
+
+    public async Task<IReadOnlyList<ServiceOrderEntity>> SearchAsync(
+        Guid? customerId,
+        ServiceOrderStatus? status,
+        DateTime? from,
+        DateTime? to,
+        CancellationToken ct)
+    {
+        var sql = new StringBuilder(@"
+            SELECT Id, Number, CustomerId, Description,
+                   Status = CAST(Status AS INT),
+                   OpenedAt, Price, Coin, UpdatedPriceAt
+            FROM dbo.ServiceOrders
+            WHERE 1 = 1
+            ");
+
+        var parameters = new DynamicParameters();
+
+        if (customerId is not null)
+        {
+            sql.AppendLine("AND CustomerId = @CustomerId");
+            parameters.Add("CustomerId", customerId);
+        }
+
+        if (status is not null)
+        {
+            sql.AppendLine("AND Status = @Status");
+            parameters.Add("Status", (int)status.Value);
+        }
+
+        if (from is not null)
+        {
+            sql.AppendLine("AND OpenedAt >= @From");
+            parameters.Add("From", from.Value);
+        }
+
+        if (to is not null)
+        {
+            sql.AppendLine("AND OpenedAt <= @To");
+            parameters.Add("To", to.Value);
+        }
+
+        using var conn = factory.Create();
+        var rows = await conn.QueryAsync<ServiceOrderEntity>(
+            new CommandDefinition(sql.ToString(), parameters, cancellationToken: ct));
+
+        return rows.ToList();
     }
 }
