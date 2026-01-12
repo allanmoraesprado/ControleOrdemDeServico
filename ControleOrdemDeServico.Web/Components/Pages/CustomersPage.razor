@@ -1,73 +1,140 @@
 ﻿@page "/customers"
 @inject OsServiceApiClient Api
 
-<h1>Customers</h1>
+<section class="os-section">
+    <div class="container os-container">
+        <header class="os-section-header">
+            <h1 class="os-title">Customers</h1>
+            <p class="os-subtitle">
+                Register new customers and search existing records.
+            </p>
+        </header>
 
-<h3>Create customer</h3>
+        @if (!string.IsNullOrEmpty(_createError))
+        {
+            <div class="alert alert-danger os-alert">
+                @_createError
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(_createSuccess))
+        {
+            <div class="alert alert-success os-alert">
+                @_createSuccess
+            </div>
+        }
 
-@if (!string.IsNullOrEmpty(_createError))
-{
-    <div class="alert alert-danger">@_createError</div>
-}
-@if (!string.IsNullOrEmpty(_createSuccess))
-{
-    <div class="alert alert-success">@_createSuccess</div>
-}
+        <div class="row g-4 os-form-row">
+            <!-- Create customer -->
+            <div class="col-lg-6">
+                <div class="os-panel">
+                    <h2 class="os-panel-title">Create customer</h2>
+                    <p class="os-panel-subtitle">
+                        Fields marked with <span class="os-required">*</span> are required.
+                    </p>
 
-<div class="card p-3 mb-4">
-    <div class="mb-2">
-        <label class="form-label">Name *</label>
-        <input class="form-control" @bind="_createModel.Name" />
-    </div>
-    <div class="mb-2">
-        <label class="form-label">Phone</label>
-        <input class="form-control" @bind="_createModel.Phone" />
-    </div>
-    <div class="mb-2">
-        <label class="form-label">Email</label>
-        <input class="form-control" @bind="_createModel.Email" />
-    </div>
-    <div class="mb-2">
-        <label class="form-label">Document</label>
-        <input class="form-control" @bind="_createModel.Document" />
-    </div>
-    <button class="btn btn-primary" @onclick="CreateCustomerAsync">Create</button>
-</div>
+                    <div class="os-field">
+                        <label class="os-label">Name <span class="os-required">*</span></label>
+                        <input class="form-control os-input"
+                               placeholder="Customer name"
+                               @bind="_createModel.Name" />
+                    </div>
 
-<h3>Find customer</h3>
+                    <div class="os-field">
+                        <label class="os-label">Phone</label>
+                        <input class="form-control os-input"
+                               placeholder="+55 (11) 99999-9999"
+                               @bind="_createModel.Phone" />
+                    </div>
 
-<div class="card p-3 mb-3">
-    <div class="mb-2">
-        <label class="form-label">Id</label>
-        <input class="form-control" @bind="_searchById" />
-    </div>
-    <button class="btn btn-secondary me-2" @onclick="GetCustomerByIdAsync">Get by Id</button>
-</div>
+                    <div class="os-field">
+                        <label class="os-label">Email</label>
+                        <input class="form-control os-input"
+                               placeholder="name@company.com"
+                               @bind="_createModel.Email" />
+                    </div>
 
-<div class="card p-3 mb-3">
-    <div class="mb-2">
-        <label class="form-label">Phone</label>
-        <input class="form-control" @bind="_searchPhone" />
-    </div>
-    <div class="mb-2">
-        <label class="form-label">Document</label>
-        <input class="form-control" @bind="_searchDocument" />
-    </div>
-    <button class="btn btn-secondary" @onclick="SearchCustomerAsync">Search by phone/document</button>
-</div>
+                    <div class="os-field">
+                        <label class="os-label">Document</label>
+                        <input class="form-control os-input"
+                               placeholder="CPF / CNPJ"
+                               @bind="_createModel.Document" />
+                    </div>
 
-@if (_currentCustomer is not null)
-{
-    <h3>Customer details</h3>
-    <div class="card p-3">
-        <p><b>Id:</b> @_currentCustomer.Id</p>
-        <p><b>Name:</b> @_currentCustomer.Name</p>
-        <p><b>Phone:</b> @_currentCustomer.Phone</p>
-        <p><b>Email:</b> @_currentCustomer.Email</p>
-        <p><b>Document:</b> @_currentCustomer.Document</p>
-        <p><b>Created at (UTC):</b> @_currentCustomer.CreatedAt</p>
+                    <button class="btn os-btn-primary os-btn-primary-main mt-3"
+                            @onclick="CreateCustomerAsync">
+                        Create customer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Find customer -->
+            <div class="col-lg-6">
+                <div class="os-panel">
+                    <h2 class="os-panel-title">Find customer</h2>
+                    <p class="os-panel-subtitle">
+                        Search by Id, phone or document.
+                    </p>
+
+                    <div class="os-field">
+                        <label class="os-label">Customer Id</label>
+                        <input class="form-control os-input"
+                               placeholder="GUID"
+                               @bind="_searchById" />
+                    </div>
+
+                    <button class="btn os-btn-secondary mb-4"
+                            @onclick="GetCustomerByIdAsync">
+                        Get by Id
+                    </button>
+
+                    <div class="os-divider">
+                        <span>or</span>
+                    </div>
+
+                    <div class="os-field">
+                        <label class="os-label">Phone</label>
+                        <input class="form-control os-input"
+                               placeholder="+55 (11) 99999-9999"
+                               @bind="_searchPhone" />
+                    </div>
+
+                    <div class="os-field">
+                        <label class="os-label">Document</label>
+                        <input class="form-control os-input"
+                               placeholder="CPF / CNPJ"
+                               @bind="_searchDocument" />
+                    </div>
+
+                    <button class="btn os-btn-outline mt-3"
+                            @onclick="SearchCustomerAsync">
+                        Search by phone / document
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @if (_currentCustomer is not null)
+        {
+            <section class="os-details mt-5">
+                <h3 class="os-details-title">Customer details</h3>
+                <div class="os-panel os-details-panel">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="os-detail-line"><span>Id</span> @_currentCustomer.Id</p>
+                            <p class="os-detail-line"><span>Name</span> @_currentCustomer.Name</p>
+                            <p class="os-detail-line"><span>Phone</span> @_currentCustomer.Phone</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="os-detail-line"><span>Email</span> @_currentCustomer.Email</p>
+                            <p class="os-detail-line"><span>Document</span> @_currentCustomer.Document</p>
+                            <p class="os-detail-line"><span>Created at (UTC)</span> @_currentCustomer.CreatedAt</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
     </div>
-}
+</section>
 
 @code {
     private CreateCustomerModel _createModel = new();

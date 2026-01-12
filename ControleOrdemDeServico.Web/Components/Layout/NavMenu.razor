@@ -1,29 +1,15 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">ControleOrdemDeServico</a>
+﻿@using Microsoft.AspNetCore.Components.Routing
+
+<nav class="os-nav">
+    <div class="os-nav-brand">
+        <span class="os-nav-logo">OS</span>
+        <span class="os-nav-title">OsService</span>
     </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="customers">
-                <span class="bi bi-plus-square-fill" aria-hidden="true"></span> Customers
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="service-orders">
-                <span class="bi bi-list-nested" aria-hidden="true"></span> ServiceOrders
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    <div class="os-nav-links">
+        <NavLink href="" Match="NavLinkMatch.All">Home</NavLink>
+        <NavLink href="customers">Customers</NavLink>
+        <NavLink href="service-orders">Service Orders</NavLink>
+        <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">Docs</a>
+    </div>
+</nav>

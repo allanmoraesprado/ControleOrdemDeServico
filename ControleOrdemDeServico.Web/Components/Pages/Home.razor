@@ -1,61 +1,64 @@
 ﻿@page "/"
-<PageTitle>Service Orders</PageTitle>
 
-<div class="container py-4">
+<section class="home-hero">
+    <div class="container home-hero-content">
+        <p class="home-eyebrow">Service Orders panel</p>
 
-    <h1 class="display-5 mb-2">Service Orders</h1>
-    <p class="text-muted mb-4">
-        Simple panel to manage customers and service orders for a small business.
-    </p>
+        <h1>
+            <span class="home-highlight">A partner you can trust</span><br />
+            to organize your service orders.
+        </h1>
 
-    <div class="row g-3">
+        <p class="home-subtitle">
+            Register customers, open orders and track price and status
+            in a single, simple web panel.
+        </p>
 
-        <!-- Customers card -->
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">Customers</h5>
-                    <p class="card-text text-muted">
-                        Register new customers and search by Id, phone or document.
-                    </p>
-
-                    <ul class="small text-muted mb-3">
-                        <li>Create customer</li>
-                        <li>Get customer by Id</li>
-                        <li>Search by phone / document</li>
-                    </ul>
-
-                    <NavLink href="customers"
-                             class="btn btn-primary mt-auto">
-                        Go to Customers
-                    </NavLink>
-                </div>
-            </div>
+        <div class="home-hero-actions">
+            <NavLink href="service-orders" class="btn btn-primary">
+                Open a service order
+            </NavLink>
+            <NavLink href="customers" class="btn btn-outline-light ms-3">
+                Register a customer
+            </NavLink>
         </div>
-
-        <!-- Service orders card -->
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">Service Orders</h5>
-                    <p class="card-text text-muted">
-                        Open new service orders and track status and price.
-                    </p>
-
-                    <ul class="small text-muted mb-3">
-                        <li>Open service order</li>
-                        <li>Check current status</li>
-                        <li>View pricing information</li>
-                    </ul>
-
-                    <NavLink href="service-orders"
-                             class="btn btn-outline-primary mt-auto">
-                        Go to Service Orders
-                    </NavLink>
-                </div>
-            </div>
-        </div>
-
     </div>
+</section>
 
-</div>
+<section class="home-summary">
+    <div class="container home-summary-grid">
+        <div class="card home-card">
+            <div class="card-body">
+                <h3 class="card-title">Customers</h3>
+                <p class="card-text">
+                    Register new customers and find them quickly by Id, phone or document.
+                </p>
+                <ul>
+                    <li>Create customer</li>
+                    <li>Get customer by Id</li>
+                    <li>Search by phone / document</li>
+                </ul>
+                <NavLink href="customers" class="btn btn-link p-0 mt-2">
+                    Go to Customers →
+                </NavLink>
+            </div>
+        </div>
+
+        <div class="card home-card">
+            <div class="card-body">
+                <h3 class="card-title">Service Orders</h3>
+                <p class="card-text">
+                    Open new service orders, define price and track the full lifecycle.
+                </p>
+                <ul>
+                    <li>Open service order</li>
+                    <li>Check current status</li>
+                    <li>View pricing information</li>
+                </ul>
+                <NavLink href="service-orders" class="btn btn-link p-0 mt-2">
+                    Go to Service Orders →
+                </NavLink>
+            </div>
+        </div>
+    </div>
+</section>

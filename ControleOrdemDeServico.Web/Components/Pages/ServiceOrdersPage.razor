@@ -1,62 +1,116 @@
 ﻿@page "/service-orders"
 @inject OsServiceApiClient Api
 
-<h1>Service Orders</h1>
+<section class="os-section">
+    <div class="container os-container">
+        <header class="os-section-header">
+            <h1 class="os-title">Service Orders</h1>
+            <p class="os-subtitle">
+                Open new service orders and track price and status.
+            </p>
+        </header>
 
-<h3>Open service order</h3>
+        @if (!string.IsNullOrEmpty(_openError))
+        {
+            <div class="alert alert-danger os-alert">
+                @_openError
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(_openSuccess))
+        {
+            <div class="alert alert-success os-alert">
+                @_openSuccess
+            </div>
+        }
 
-@if (!string.IsNullOrEmpty(_openError))
-{
-    <div class="alert alert-danger">@_openError</div>
-}
-@if (!string.IsNullOrEmpty(_openSuccess))
-{
-    <div class="alert alert-success">@_openSuccess</div>
-}
+        <div class="row g-4 os-form-row">
+            <!-- Open service order -->
+            <div class="col-lg-6">
+                <div class="os-panel">
+                    <h2 class="os-panel-title">Open service order</h2>
+                    <p class="os-panel-subtitle">
+                        Link the order to an existing customer and describe the service.
+                    </p>
 
-<div class="card p-3 mb-4">
-    <div class="mb-2">
-        <label class="form-label">Customer Id *</label>
-        <input class="form-control" @bind="_openModel.CustomerId" />
+                    <div class="os-field">
+                        <label class="os-label">Customer Id <span class="os-required">*</span></label>
+                        <input class="form-control os-input"
+                               placeholder="Customer GUID"
+                               @bind="_openModel.CustomerId" />
+                    </div>
+
+                    <div class="os-field">
+                        <label class="os-label">Description <span class="os-required">*</span></label>
+                        <textarea class="form-control os-input os-textarea"
+                                  placeholder="Describe the service to be performed"
+                                  rows="4"
+                                  @bind="_openModel.Description">
+                        </textarea>
+                    </div>
+
+                    <div class="os-field">
+                        <label class="os-label">Initial price (optional)</label>
+                        <input class="form-control os-input"
+                               placeholder="0,00"
+                               @bind="_openModel.Price" />
+                    </div>
+
+                    <button class="btn os-btn-primary os-btn-primary-main mt-3"
+                            @onclick="OpenServiceOrderAsync">
+                        Open
+                    </button>
+                </div>
+            </div>
+
+            <!-- Find service order -->
+            <div class="col-lg-6">
+                <div class="os-panel">
+                    <h2 class="os-panel-title">Find service order</h2>
+                    <p class="os-panel-subtitle">
+                        Search by service order Id to see full details.
+                    </p>
+
+                    <div class="os-field">
+                        <label class="os-label">Service order Id</label>
+                        <input class="form-control os-input"
+                               placeholder="Service order GUID"
+                               @bind="_searchSoId" />
+                    </div>
+
+                    <button class="btn os-btn-secondary mt-3"
+                            @onclick="GetServiceOrderByIdAsync">
+                        Get by Id
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @if (_currentSo is not null)
+        {
+            <section class="os-details mt-5">
+                <h3 class="os-details-title">Service order details</h3>
+                <div class="os-panel os-details-panel">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="os-detail-line"><span>Id</span> @_currentSo.Id</p>
+                            <p class="os-detail-line"><span>Number</span> @_currentSo.Number</p>
+                            <p class="os-detail-line"><span>Customer Id</span> @_currentSo.CustomerId</p>
+                            <p class="os-detail-line"><span>Status</span> @_currentSo.Status</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="os-detail-line"><span>Opened at (UTC)</span> @_currentSo.OpenedAt</p>
+                            <p class="os-detail-line"><span>Price</span> @_currentSo.Price</p>
+                            <p class="os-detail-line"><span>Coin</span> @_currentSo.Coin</p>
+                            <p class="os-detail-line"><span>Updated price at</span> @_currentSo.UpdatedPriceAt</p>
+                            <p class="os-detail-line"><span>Started at</span> @_currentSo.StartedAt</p>
+                            <p class="os-detail-line"><span>Finished at</span> @_currentSo.FinishedAt</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
     </div>
-    <div class="mb-2">
-        <label class="form-label">Description *</label>
-        <textarea class="form-control" @bind="_openModel.Description"></textarea>
-    </div>
-    <div class="mb-2">
-        <label class="form-label">Initial Price (optional)</label>
-        <input class="form-control" @bind="_openModel.Price" />
-    </div>
-    <button class="btn btn-primary" @onclick="OpenServiceOrderAsync">Open</button>
-</div>
-
-<h3>Find service order</h3>
-
-<div class="card p-3 mb-3">
-    <div class="mb-2">
-        <label class="form-label">Service order Id</label>
-        <input class="form-control" @bind="_searchSoId" />
-    </div>
-    <button class="btn btn-secondary" @onclick="GetServiceOrderByIdAsync">Get by Id</button>
-</div>
-
-@if (_currentSo is not null)
-{
-    <h3>Service order details</h3>
-    <div class="card p-3">
-        <p><b>Id:</b> @_currentSo.Id</p>
-        <p><b>Number:</b> @_currentSo.Number</p>
-        <p><b>CustomerId:</b> @_currentSo.CustomerId</p>
-        <p><b>Description:</b> @_currentSo.Description</p>
-        <p><b>Status:</b> @_currentSo.Status</p>
-        <p><b>Opened at (UTC):</b> @_currentSo.OpenedAt</p>
-        <p><b>Price:</b> @_currentSo.Price</p>
-        <p><b>Coin:</b> @_currentSo.Coin</p>
-        <p><b>Updated price at:</b> @_currentSo.UpdatedPriceAt</p>
-        <p><b>Started at:</b> @_currentSo.StartedAt</p>
-        <p><b>Finished at:</b> @_currentSo.FinishedAt</p>
-    </div>
-}
+</section>
 
 @code {
     private OpenServiceOrderModel _openModel = new();

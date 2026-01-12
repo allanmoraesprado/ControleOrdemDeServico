@@ -1,5 +1,23 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="container py-4">
-    @Body
+<div class="os-layout">
+    <header>
+        <NavMenu />
+    </header>
+
+    <main class="os-main">
+        @Body
+    </main>
+
+    <footer class="os-footer">
+        <div class="container">
+            <span>© @DateTime.UtcNow.Year OsService • Simple service order panel</span>
+        </div>
+    </footer>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
 </div>
