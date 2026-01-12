@@ -12,16 +12,23 @@ builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(CreateCustomerCommand).Assembly));
 
+var defaultCs = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+var adminCs = builder.Configuration.GetConnectionString("CreateTable")
+    ?? throw new InvalidOperationException("Connection string 'CreateTable' not found.");
+
 builder.Services.AddSingleton<IDefaultSqlConnectionFactory>(_ =>
-    new SqlConnectionFactory(
-        builder.Configuration.GetConnectionString("DefaultConnection")!));
+    new SqlConnectionFactory(defaultCs));
 
 builder.Services.AddSingleton<IAdminSqlConnectionFactory>(_ =>
-    new SqlConnectionFactory(
-        builder.Configuration.GetConnectionString("CreateTable")!));
+    new SqlConnectionFactory(adminCs));
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IServiceOrderRepository, ServiceOrderRepository>();
@@ -66,6 +73,13 @@ app.UseExceptionHandler(appBuilder =>
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "OsService API v1");
+        c.RoutePrefix = "swagger";
+    });
+
     app.MapOpenApi();
 }
 
