@@ -3,12 +3,18 @@ using OsService.Infrastructure.Databases;
 using OsService.Infrastructure.Repository;
 using OsService.Services.Exceptions;
 using OsService.Services.V1.Customers.CreateCustomer;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+.AddJsonOptions(options =>
+ {
+     options.JsonSerializerOptions.Converters.Add(
+         new JsonStringEnumConverter());
+ });
 
 builder.Services.AddOpenApi();
 

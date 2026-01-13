@@ -35,9 +35,18 @@ public sealed class ServiceOrderRepository(IDefaultSqlConnectionFactory factory)
     public async Task<ServiceOrderEntity?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         const string sql = @"
-            SELECT Id, Number, CustomerId, Description,
-                   Status = CAST(Status AS INT),
-                   OpenedAt, Price, Coin, UpdatedPriceAt
+            SELECT
+                Id,
+                Number,
+                CustomerId,
+                Description,
+                Status       = CAST(Status AS INT),
+                OpenedAt,
+                Price,
+                Coin,
+                UpdatedPriceAt,
+                StartedAt,
+                FinishedAt
             FROM dbo.ServiceOrders
             WHERE Id = @Id;";
 
@@ -57,7 +66,9 @@ public sealed class ServiceOrderRepository(IDefaultSqlConnectionFactory factory)
             OpenedAt = raw.OpenedAt,
             Price = raw.Price,
             Coin = raw.Coin,
-            UpdatedPriceAt = raw.UpdatedPriceAt
+            UpdatedPriceAt = raw.UpdatedPriceAt,
+            StartedAt = raw.StartedAt,
+            FinishedAt = raw.FinishedAt
         };
     }
 
