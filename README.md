@@ -1,191 +1,503 @@
-# InstruÁıes
+# OsService ‚Äì Painel de Ordens de Servi√ßo
 
-- Caso o tempo n„o seja suficiente, priorize a **qualidade, o padr„o e a estrutura do cÛdigo**, definindo claramente quais funcionalidades n„o ser„o implementadas.
-- Caso alguma funcionalidade n„o seja implementada, isso **deve ser documentado neste README**, explicando o motivo.
-- O cÛdigo fornecido contÈm **problemas que devem ser identificados e corrigidos**.
-- Fique a vontade para criar, renomear e remover pastas,bibliotecas e atÈ a soluÁ„o n„o utilizadas.
-- O sistema deve **compilar corretamente e executar todas as aÁıes previstas**.
-- O cÛdigo final **n„o deve apresentar erros nem warnings** durante a compilaÁ„o.
-- Deve ser enviado via e-mail para consultoria com o link do projeto no Github. A consultaoria ter· atÈ terÁa-feira dia 13 as as 13 horas para encaminhar o e-mail.
+OsService √© uma aplica√ß√£o full-stack simples para gerenciar **clientes** e **ordens de servi√ßo**.
 
----
+Ela exp√µe:
 
-## 1. IntroduÁ„o
-
-Sistema para um prestador de serviÁos (ou pequena equipe) registrar clientes, abrir ordens de serviÁo, acompanhar status, registrar valores e anexar fotos de antes/depois do serviÁo.
+- Uma **API REST** (ASP.NET Core) para clientes, ordens e anexos  
+- Um **painel web em Blazor Server** para cadastrar clientes, abrir ordens, alterar status, atualizar pre√ßo e fazer upload de fotos *antes/depois*  
+- Uma su√≠te de **testes unit√°rios** focada nas regras de neg√≥cio (atualmente **31 testes**)
 
 ---
 
-## 2. Funcionalidades Detalhadas
+## Sum√°rio
 
-### 2.1 Cadastro de Cliente
-
-#### Objetivo
-Permitir registrar e consultar dados do cliente para vinculaÁ„o em Ordens de ServiÁo (OS).
-
-#### Campos (mÌnimo)
-- Nome (obrigatÛrio, 2ñ150 caracteres)
-- Id (gerado pelo sistema)
-- Telefone (opcional, atÈ 30 caracteres)
-- E-mail (opcional, atÈ 120 caracteres, formato v·lido)
-- Documento (CPF/CNPJ) (opcional, atÈ 30 caracteres, sem validaÁ„o pesada)
-- Data de criaÁ„o (gerado pelo sistema)
-
-#### Regras de NegÛcio
-1. Nome È obrigatÛrio e n„o pode conter apenas whitespace.
-2. Telefone e e-mail podem ser nulos; se informados, devem ser trimados.
-3. Opcionalmente, bloquear ou alertar duplicidade por:
-   - Documento (CPF/CNPJ), quando informado
-   - Telefone, quando informado
-
-#### OperaÁıes
-- Criar cliente
-- Consultar cliente por Id
-- Buscar cliente por telefone ou documento
-
-#### Casos de Teste
-- Criar cliente com nome v·lido retorna 201 Created + id
-- Criar cliente sem nome retorna 400 Validation Error
-- Criar cliente com e-mail inv·lido retorna 400 Validation Error
-- Criar cliente com telefone e buscar retorna dados consistentes
-- Criar cliente com documento duplicado (se regra ativa) retorna 409 Conflict ou 400
+- [Arquitetura e estrutura da solu√ß√£o](#arquitetura-e-estrutura-da-solu√ß√£o)
+- [Vis√£o de dom√≠nio](#vis√£o-de-dom√≠nio)
+- [Endpoints da API](#endpoints-da-api)
+- [Tratamento de erros e status HTTP](#tratamento-de-erros-e-status-http)
+- [Armazenamento de anexos](#armazenamento-de-anexos)
+- [Aplica√ß√£o Web](#aplica√ß√£o-web)
+- [Como executar o projeto](#como-executar-o-projeto)
+  - [Pr√©-requisitos](#pr√©-requisitos)
+  - [Subindo a infraestrutura com Docker](#subindo-a-infraestrutura-com-docker)
+  - [Executando a API](#executando-a-api)
+  - [Executando o Web UI](#executando-o-web-ui)
+- [Swagger](#swagger)
+- [Testes unit√°rios](#testes-unit√°rios)
+- [Screenshots](#screenshots)
+- [Poss√≠veis evolu√ß√µes](#poss√≠veis-evolu√ß√µes)
 
 ---
 
-### 2.2 Abertura de Ordem de ServiÁo
+## Arquitetura e estrutura da solu√ß√£o
 
-#### Objetivo
-Criar uma OS vinculada a um cliente, com descriÁ„o e dados iniciais.
+A solu√ß√£o segue um modelo **feature-based (vertical slice)** sobre um n√∫cleo em camadas:
 
-#### Campos (mÌnimo)
-- ClienteId (obrigatÛrio)
-- DescriÁ„o do serviÁo (obrigatÛrio, 1ñ500 caracteres)
-- N˙mero da OS (gerado automaticamente, sequencial/identity)
-- Status (inicial = Aberta)
-- Data de abertura (gerado pelo sistema)
-- Valor do serviÁo (decimal(18,2)) (opcional no momento da abertura)
-- Moeda (BRL)
-- Data de atualizaÁ„o valor (opcional)
+```text
+src/
+  OsService.Domain/            # Entidades, enums e conceitos de dom√≠nio
+  OsService.Infrastructure/    # Reposit√≥rios e acesso a SQL Server
+  OsService.Services/          # Camada de aplica√ß√£o (casos de uso / handlers)
+    V1/
+      Customers/
+        CreateCustomer/
+          CreateCustomerCommand.cs
+          CreateCustomerHandler.cs
+        GetCustomerById/
+        SearchCustomers/
+      ServiceOrders/
+        OpenServiceOrder/
+        ChangeStatus/
+        UpdatePrice/
+        Attachments/
+          UploadBeforeAttachment/
+          UploadAfterAttachment/
+          GetServiceOrderAttachments/
+        GetServiceOrderById/
+  OsService.ApiService/        # Web API ASP.NET Core (controllers, DI, middleware)
+  OsService.Web/               # Painel web Blazor Server
 
-#### Regras de NegÛcio
-1. SÛ È possÌvel abrir OS para cliente existente.
-2. DescriÁ„o È obrigatÛria.
-3. Status inicial deve ser sempre Aberta.
-4. N˙mero da OS deve ser ˙nico e sequencial.
-5. Regra de negÛcio item 2.4 
+tests/
+  OsService.Services.UnitTests/
+    V1/
+      Customers/
+      ServiceOrders/
+        OpenServiceOrder/
+        ChangeStatus/
+        UpdatePrice/
+```
 
-#### OperaÁıes
-- Abrir OS
-- Consultar OS por Id
-- Listar OS por cliente, status ou perÌodo
+### Tecnologias
 
-#### Casos de Teste
-- Abrir OS para cliente existente retorna 201 Created
-- Abrir OS para cliente inexistente retorna 404 Not Found
-- Abrir OS com descriÁ„o vazia retorna 400 Bad Request
-- Consultar OS recÈm-criada retorna status Aberta
-
----
-
-### 2.3 Status da Ordem de ServiÁo
-
-#### Objetivo
-Permitir acompanhar o ciclo do serviÁo.
-
-#### Estados
-- Aberta
-- Em ExecuÁ„o
-- Finalizada
-
-#### Regras de TransiÁ„o
-- Aberta -> Em ExecuÁ„o (permitido)
-- Em ExecuÁ„o -> Finalizada (permitido)
-- Aberta -> Finalizada (bloqueado)
-- Finalizada -> qualquer outro (bloqueado)
-
-#### OperaÁıes
-- Alterar status
-- Registrar datas opcionais:
-  - StartedAt ao entrar em Em ExecuÁ„o
-  - FinishedAt ao entrar em Finalizada
-
-#### Casos de Teste
-- Alterar Aberta para Em ExecuÁ„o retorna 200 OK
-- Alterar Em ExecuÁ„o para Finalizada retorna 200 OK
-- Alterar Finalizada para outro status retorna 409 Conflict
+- **.NET 10**
+- **ASP.NET Core Web API** + **Blazor Server**
+- **SQL Server** (via um reposit√≥rio simples)
+- Handlers no estilo **MediatR** para cada caso de uso
+- **xUnit** + **Moq** para testes unit√°rios
 
 ---
 
-### 2.4 Valor do ServiÁo
-
-#### Objetivo
-Permitir definir ou ajustar o valor do serviÁo.
-
-#### Campos
-- Valor (decimal(18,2))
-- Moeda (BRL)
-- Data de atualizaÁ„o (opcional)
-
-#### Regras de NegÛcio
-1. Valor pode ser nulo enquanto Aberta ou Em ExecuÁ„o.
-2. Valor pode ser obrigatÛrio para finalizar a OS.
-3. Valor n„o pode ser negativo.
-4. ApÛs Finalizada, n„o permitir alteraÁ„o.
-
-#### OperaÁıes
-- Definir ou alterar valor
-- Validar valor ao finalizar OS
-
----
-
-### 2.5 Fotos Antes / Depois (Opcional)
-
-#### Objetivo
-Permitir anexar evidÍncias do serviÁo.
-
-#### Campos do Anexo
-- Id
-- ServiceOrderId
-- Type (Before | After)
-- FileName
-- ContentType (image/jpeg, image/png)
-- SizeBytes
-- StoragePath
-- UploadedAt
-
-#### Regras de NegÛcio
-1. Aceitar apenas JPG e PNG.
-2. Tamanho m·ximo sugerido: 5MB.
-3. Permitir m˙ltiplos anexos.
-4. Upload local em /data/uploads (container ou volume).
-
----
-
-## 3. API Sugerida
+## Vis√£o de dom√≠nio
 
 ### Clientes
-- POST /v1/customers
-- GET /v1/customers/{id}
 
-### Ordens de ServiÁo
-- POST /v1/service-orders
-- GET /v1/service-orders/{id}
-- PATCH /v1/service-orders/{id}/status
-- PUT /v1/service-orders/{id}/price
-- POST /v1/service-orders/{id}/attachments/before
-- POST /v1/service-orders/{id}/attachments/after
-- GET /v1/service-orders/{id}/attachments
+Um cliente possui:
+
+- `Id` (Guid)  
+- `Name`  
+- `Phone`  
+- `Email`  
+- `Document` (CPF/CNPJ ou similar)  
+- `CreatedAtUtc`  
+
+Regras principais:
+
+- `Name`, `Phone`, `Email` e `Document` s√£o obrigat√≥rios.  
+- H√° valida√ß√µes de tamanho e limpeza de dados.  
+- Cria√ß√£o inv√°lida resulta em erro de valida√ß√£o.
+
+### Ordens de servi√ßo
+
+Uma ordem de servi√ßo possui:
+
+- `Id` (Guid)  
+- `Number` (inteiro sequencial)  
+- `CustomerId` (deve referenciar um cliente existente)  
+- `Description` (obrigat√≥rio, m√°x. 500 caracteres)  
+- `Price` (opcional na abertura, n√£o pode ser negativo)  
+- `Coin` (fixo como BRL neste desafio)  
+- `Status` (`Open`, `InProgress`, `Finished`, `Canceled`)  
+- `OpenedAt`, `UpdatedPriceAt`, `StartedAt`, `FinishedAt`  
+
+Regras principais:
+
+- S√≥ √© poss√≠vel abrir ordem para cliente existente.  
+- `Description` √© obrigat√≥ria e limitada a 500 caracteres.  
+- `Price` n√£o pode ser negativo.
+
+### Regras de transi√ß√£o de status
+
+(Implementadas em `ChangeServiceOrderStatusHandler`):
+
+- **Status inicial:** `Open`.  
+
+**De `Open`:**
+
+- Pode ir para `InProgress` ‚Üí seta `StartedAt` (se ainda nulo).  
+- Pode ir para `Canceled`.  
+
+**De `InProgress`:**
+
+- Pode ir para `Finished` **apenas se** `Price` estiver definido (`> 0`).  
+- Caso contr√°rio, √© lan√ßada `ValidationException` com a mensagem  
+  `"Price is required to finish the service order."`.
+
+**De `Finished` ou `Canceled`:**
+
+- Qualquer altera√ß√£o √© rejeitada com `ConflictException` (HTTP 409).
+
+### Atualiza√ß√£o de pre√ßo
+
+O `UpdateServiceOrderPriceHandler`:
+
+- Garante que o pre√ßo foi informado e √© positivo.  
+- N√£o permite alterar pre√ßo se a ordem estiver cancelada.  
+- Atualiza `Price` e `UpdatedPriceAt`.
 
 ---
 
-## 4. Requisitos N„o Funcionais (Opcional)
+## Endpoints da API
 
-### Performance
-- Upload deve ser feito via streaming, evitando carregar todo o arquivo em memÛria.
+Todos os endpoints da vers√£o 1 ficam sob `/v1`.
 
-### SeguranÁa
-- Validar content-type e extens„o real do arquivo.
-- Sanitizar nome do arquivo.
+### Customers
 
-### Observabilidade
-- Registrar logs para criaÁ„o de cliente, abertura de OS e mudanÁa de status.
+**POST `/v1/customers`**  
+Cria um novo cliente.  
+Retorna **201 Created** com header `Location` e o recurso criado.
+
+**GET `/v1/customers/{id}`**  
+Retorna um cliente pelo `Id`.
+
+**GET `/v1/customers/search?phone=...&document=...`**  
+Busca clientes por telefone e/ou documento.
+
+### Service orders
+
+**POST `/v1/service-orders`**  
+Abre uma nova ordem de servi√ßo para um cliente existente.
+
+Exemplo de body:
+
+```json
+{
+  "customerId": "guid",
+  "description": "texto at√© 500 caracteres",
+  "price": 100.00
+}
+```
+
+Retorna o `Id` e o `Number` gerado.
+
+**GET `/v1/service-orders/{id}`**  
+Retorna todos os detalhes de uma ordem.
+
+**PATCH `/v1/service-orders/{id}/status`**  
+Body:
+
+```json
+{ "newStatus": "InProgress" }
+```
+
+Aplica as regras de transi√ß√£o descritas acima.
+
+**PATCH `/v1/service-orders/{id}/price`**  
+Body:
+
+```json
+{ "price": 123.45 }
+```
+
+Atualiza o pre√ßo da ordem.
+
+### Attachments
+
+**POST `/v1/service-orders/{id}/attachments/before`**  
+**POST `/v1/service-orders/{id}/attachments/after`**
+
+Ambos:
+
+- Recebem um `multipart/form-data` com um arquivo (`file`).  
+- Limitam tamanho a **5 MB**.  
+- Salvam o arquivo em disco e os metadados em banco.
+
+**GET `/v1/service-orders/{id}/attachments`**  
+Retorna a lista de anexos da ordem, contendo:
+
+- `Type` (`Before` / `After`)  
+- `FileName`  
+- `SizeBytes`  
+- `UploadedAt`  
+
+---
+
+## Tratamento de erros e status HTTP
+
+A API possui um **middleware global de exce√ß√µes** que converte exce√ß√µes de servi√ßo em respostas HTTP padronizadas (similar a **ProblemDetails**).
+
+Tipos customizados de exce√ß√£o:
+
+### ValidationException
+
+- Erros de valida√ß√£o de entrada ou de regras de neg√≥cio.  
+- Mapeada para **400 Bad Request** (ou **422** em alguns cen√°rios).  
+- Corpo da resposta cont√©m uma mensagem clara.
+
+### ConflictException
+
+- Opera√ß√£o n√£o permitida para o estado atual do recurso  
+  (por exemplo, tentar alterar o status de uma ordem j√° finalizada).  
+- Mapeada para **409 Conflict**.
+
+### KeyNotFoundException / NotFoundException
+
+- Entidade n√£o encontrada.  
+- Mapeada para **404 Not Found**.
+
+### Outras exce√ß√µes
+
+- Mapeadas para **500 Internal Server Error** com mensagem gen√©rica.
+
+Exemplo simplificado de payload de erro:
+
+```json
+{
+  "type": "https://httpstatuses.com/400",
+  "title": "Validation error",
+  "status": 400,
+  "detail": "Price is required to finish the service order."
+}
+```
+
+### Cliente HTTP e ApiException
+
+O projeto Blazor usa um `HttpClient` tipado (`OsServiceApiClient`) para falar com a API.
+
+Uma extens√£o `EnsureSuccessWithApiErrorAsync`:
+
+- L√™ a resposta HTTP;  
+- Em caso de erro, desserializa o payload de problema;  
+- Lan√ßa `ApiException` com uma mensagem amig√°vel.
+
+Nas p√°ginas, os m√©todos s√£o envolvidos em `try/catch (ApiException ex)` e a mensagem √© exibida em banners de sucesso/erro.  
+Isso garante tratamento consistente em toda a UI.
+
+---
+
+## Armazenamento de anexos
+
+Os anexos s√£o gravados em disco, dentro da pasta do projeto:
+
+```text
+data/uploads/service-orders/{serviceOrderId}/before/{fileName}
+data/uploads/service-orders/{serviceOrderId}/after/{fileName}
+```
+
+O fluxo dos handlers de upload:
+
+1. Verifica se a ordem de servi√ßo existe;  
+2. Garante a cria√ß√£o das pastas (`Directory.CreateDirectory`);  
+3. Salva o arquivo com o nome original;  
+4. Persiste os metadados no banco (`SizeBytes`, `Type`, `UploadedAt`, etc).
+
+Na UI:
+
+- o usu√°rio escolhe o arquivo;  
+- √© gerado um preview em mem√≥ria usando `data:<contentType>;base64,...`;  
+- o arquivo √© enviado para a API via `MultipartFormDataContent`;  
+- a lista de anexos √© recarregada ao final do upload.
+
+---
+
+## Aplica√ß√£o Web
+
+O painel web em Blazor Server est√° em `OsService.Web`.
+
+### P√°ginas principais
+
+**Home**
+
+- Hero com chamada principal para o painel de ordens.  
+- Bot√µes **‚ÄúOpen a service order‚Äù** e **‚ÄúRegister a customer‚Äù**.
+
+**Customers**
+
+- Topo: card com os detalhes do cliente carregado e *badge* de contexto:
+  - `CUSTOMER CREATED`, `SEARCH RESULT`, etc.
+- Coluna esquerda: formul√°rio de cria√ß√£o de cliente.  
+- Coluna direita: busca de cliente por Id, telefone ou documento.
+
+**Service Orders**
+
+- Card principal com todos os dados da ordem e *badge* contextual:
+  - `SERVICE ORDER OPENED`, `STATUS UPDATED`, `PRICE UPDATED`.
+- Painel de mudan√ßa de status com `select` estilizado.  
+- Painel de atualiza√ß√£o de pre√ßo.  
+- Pain√©is de foto **Before** e **After**:
+  - campo de arquivo;  
+  - bot√£o de upload;  
+  - preview da √∫ltima foto enviada.  
+- Lista de anexos com bot√£o **‚ÄúRefresh attachments‚Äù**.
+
+Todo o layout usa **tema escuro**, tipografia consistente e bot√µes com bordas arredondadas.
+
+---
+
+## Como executar o projeto
+
+### Pr√©-requisitos
+
+- **.NET 10 SDK**  
+- **Docker Desktop** (ou Docker Engine)  
+- Opcional: ferramentas de cliente SQL Server (para inspecionar o banco)
+
+Clone o reposit√≥rio:
+
+```bash
+git clone https://github.com/<seu-usuario>/osservice.git
+cd osservice
+```
+
+### Subindo a infraestrutura com Docker
+
+O arquivo `docker-compose.yml` sobe os servi√ßos de infraestrutura, incluindo SQL Server.
+
+Exemplos:
+
+```bash
+# Subir apenas o SQL Server
+docker compose up -d sqlserver
+
+# Subir todos os servi√ßos definidos
+docker compose up -d
+```
+
+A API espera que o SQL Server esteja dispon√≠vel na connection string configurada em `appsettings.Development.json`.  
+Ajuste servidor/porta/usu√°rio/senha caso necess√°rio para o seu ambiente.
+
+### Executando a API
+
+Na raiz do reposit√≥rio:
+
+```bash
+dotnet run --project src/OsService.ApiService
+```
+
+Por padr√£o a API ficar√° em algo como:
+
+```text
+https://localhost:7391
+```
+
+(Verifique `launchSettings.json` para a porta exata).
+
+### Executando o Web UI
+
+Em outro terminal:
+
+```bash
+dotnet run --project src/OsService.Web
+```
+
+O Blazor Server ficar√° dispon√≠vel em algo como:
+
+```text
+https://localhost:7240
+```
+
+A aplica√ß√£o web l√™ a URL da API da configura√ß√£o (`ApiBaseUrl` em `appsettings.Development.json`) e deve apontar para a inst√¢ncia que voc√™ acabou de iniciar.
+
+---
+
+## Swagger
+
+A API exp√µe **Swagger/OpenAPI** para explora√ß√£o e testes dos endpoints.
+
+Com a API rodando, acesse:
+
+```text
+https://localhost:7391/swagger
+```
+
+No Swagger voc√™ consegue:
+
+- Ver a lista de endpoints organizada por feature;  
+- Inspecionar contratos de request/response;  
+- Executar chamadas diretamente contra a inst√¢ncia local.
+
+---
+
+## Testes unit√°rios
+
+Os testes ficam em:
+
+```text
+tests/OsService.Services.UnitTests
+```
+
+O foco est√° na camada de servi√ßos/handlers, n√£o em controllers nem em HTTP.
+
+Atualmente existem **31 testes**, cobrindo:
+
+### `OpenServiceOrderHandler`
+
+- Valida√ß√£o de `CustomerId`, `Description`, `Price`;  
+- Comportamento quando o cliente n√£o existe;  
+- Caminho feliz de cria√ß√£o.
+
+### `ChangeServiceOrderStatusHandler`
+
+- Ordem n√£o encontrada;  
+- Transi√ß√µes proibidas (ex.: alterar ordem finalizada);  
+- De `Open` ‚Üí `InProgress`;  
+- De `InProgress` ‚Üí `Finished` com/sem pre√ßo.
+
+### `UpdateServiceOrderPriceHandler`
+
+- Valida√ß√£o de pre√ßo;  
+- Ordem n√£o encontrada;  
+- Rejei√ß√£o quando a ordem est√° cancelada;  
+- Atualiza√ß√£o correta de `Price` e `UpdatedPriceAt`.
+
+### Handlers de clientes
+
+(Cria√ß√£o, busca por Id, busca por telefone/documento):
+
+- Campos obrigat√≥rios;  
+- Cen√°rio de n√£o encontrado;  
+- Caminhos felizes.
+
+Para rodar os testes:
+
+```bash
+dotnet test
+# ou
+dotnet test tests/OsService.Services.UnitTests
+```
+
+---
+
+## Screenshots
+
+As capturas abaixo mostram o fluxo completo do painel web.
+
+> Dica: salve as imagens em `docs/images` no reposit√≥rio com os nomes abaixo.
+
+![Home](docs/images/home.png)
+
+![Customers ‚Äì customer created](docs/images/customers-created.png)
+
+![Customers ‚Äì search result](docs/images/customers-search-result.png)
+
+![Service Orders ‚Äì opened](docs/images/service-orders-opened.png)
+
+![Service Orders ‚Äì status updated](docs/images/service-orders-status-updated.png)
+
+![Service Orders ‚Äì before/after upload](docs/images/service-orders-before-after.png)
+
+![Service Orders ‚Äì attachments list](docs/images/service-orders-attachments.png)
+
+## Poss√≠veis evolu√ß√µes
+
+Algumas ideias para trabalhos futuros:
+
+- Adicionar testes de integra√ß√£o (API + banco) al√©m dos testes unit√°rios.  
+- Pagina√ß√£o e ordena√ß√£o em buscas de clientes e ordens.  
+- Autentica√ß√£o/autoriza√ß√£o (por exemplo, JWT) para proteger o painel.  
+- Endpoint dedicado para download de anexos (por exemplo, com URLs tempor√°rias) em vez de servir diretamente do file system.  
+- Mais valida√ß√µes e unicidade forte para clientes (documento, e-mail, etc.).
+
+---
+
+Feito com .NET 10 e muito caf√© ‚òï
