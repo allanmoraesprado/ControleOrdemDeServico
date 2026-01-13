@@ -13,15 +13,46 @@
 
         @if (!string.IsNullOrEmpty(_createError))
         {
-            <div class="alert alert-danger os-alert">
-                @_createError
+            <div class="os-alert os-alert-danger">
+                <div class="os-alert-icon">!</div>
+                <div class="os-alert-body">
+                    <div class="os-alert-title">Something went wrong</div>
+                    <div class="os-alert-message">@_createError</div>
+                </div>
             </div>
         }
-        @if (!string.IsNullOrEmpty(_createSuccess))
+        
+        @if (_currentCustomer is not null)
         {
-            <div class="alert alert-success os-alert">
-                @_createSuccess
-            </div>
+            <section class="os-details mt-4 mb-5">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h3 class="os-details-title mb-0">Customer details</h3>
+
+                    @if (!string.IsNullOrEmpty(_createSuccess))
+                    {
+                        <span class="os-badge os-badge-success">Customer created</span>
+                    }
+                    else
+                    {
+                        <span class="os-badge os-badge-info">Search result</span>
+                    }
+                </div>
+
+                <div class="os-panel os-details-panel @(string.IsNullOrEmpty(_createSuccess) ? "" : "os-details-panel-success")">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="os-detail-line"><span>Id</span> @_currentCustomer.Id</p>
+                            <p class="os-detail-line"><span>Name</span> @_currentCustomer.Name</p>
+                            <p class="os-detail-line"><span>Phone</span> @_currentCustomer.Phone</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="os-detail-line"><span>Email</span> @_currentCustomer.Email</p>
+                            <p class="os-detail-line"><span>Document</span> @_currentCustomer.Document</p>
+                            <p class="os-detail-line"><span>Created at (UTC)</span> @_currentCustomer.CreatedAt</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
         }
 
         <div class="row g-4 os-form-row">
@@ -112,28 +143,7 @@
                     </button>
                 </div>
             </div>
-        </div>
-
-        @if (_currentCustomer is not null)
-        {
-            <section class="os-details mt-5">
-                <h3 class="os-details-title">Customer details</h3>
-                <div class="os-panel os-details-panel">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <p class="os-detail-line"><span>Id</span> @_currentCustomer.Id</p>
-                            <p class="os-detail-line"><span>Name</span> @_currentCustomer.Name</p>
-                            <p class="os-detail-line"><span>Phone</span> @_currentCustomer.Phone</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="os-detail-line"><span>Email</span> @_currentCustomer.Email</p>
-                            <p class="os-detail-line"><span>Document</span> @_currentCustomer.Document</p>
-                            <p class="os-detail-line"><span>Created at (UTC)</span> @_currentCustomer.CreatedAt</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        }
+        </div>       
     </div>
 </section>
 
@@ -160,6 +170,7 @@
     {
         _createError = null;
         _createSuccess = null;
+        _currentCustomer = null;
 
         try
         {
@@ -172,14 +183,16 @@
             var id = await Api.CreateCustomerAsync(req);
             _createSuccess = $"Customer created with Id {id}.";
             _currentCustomer = await Api.GetCustomerByIdAsync(id);
+
+            _createModel = new CreateCustomerModel();
         }
-        catch (HttpRequestException ex)
-        {
-            _createError = $"Error calling API: {ex.Message}";
-        }
-        catch (Exception ex)
+        catch (ApiException ex)
         {
             _createError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _createError = "An unexpected error occurred.";
         }
     }
 
@@ -202,9 +215,13 @@
             if (_currentCustomer is null)
                 _createError = "Customer not found.";
         }
-        catch (Exception ex)
+        catch (ApiException ex)
         {
             _createError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _createError = "An unexpected error occurred.";
         }
     }
 
@@ -226,9 +243,13 @@
                 _currentCustomer = result;
             }
         }
-        catch (Exception ex)
+        catch (ApiException ex)
         {
             _createError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _createError = "An unexpected error occurred.";
         }
     }
 }

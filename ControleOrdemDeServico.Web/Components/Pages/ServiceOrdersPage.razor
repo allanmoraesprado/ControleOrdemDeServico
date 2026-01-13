@@ -2,6 +2,9 @@
 @rendermode InteractiveServer
 @inject OsServiceApiClient Api
 
+@using Microsoft.AspNetCore.Components.Forms
+@using OsService.Web.Api.ServiceOrders
+
 <section class="os-section">
     <div class="container os-container">
         <header class="os-section-header">
@@ -13,18 +16,246 @@
 
         @if (!string.IsNullOrEmpty(_openError))
         {
-            <div class="alert alert-danger os-alert">
-                @_openError
-            </div>
-        }
-        @if (!string.IsNullOrEmpty(_openSuccess))
-        {
-            <div class="alert alert-success os-alert">
-                @_openSuccess
+            <div class="os-alert os-alert-danger mb-4">
+                <div class="os-alert-icon">!</div>
+                <div class="os-alert-body">
+                    <div class="os-alert-title">Something went wrong</div>
+                    <div class="os-alert-message">@_openError</div>
+                </div>
             </div>
         }
 
-        <div class="row g-4 os-form-row">
+        @if (_currentSo is not null)
+        {
+            <!-- Detalhes -->
+            var badgeText = _detailsContext switch
+            {
+                "opened" => "Service order opened",
+                "status" => "Status updated",
+                "price" => "Price updated",
+                _ => "Search result"
+            };
+
+            var isSuccessContext = _detailsContext is "opened" or "status" or "price";
+            var badgeClass = isSuccessContext ? "os-badge os-badge-success" : "os-badge os-badge-info";
+            var panelExtraClass = isSuccessContext ? "os-details-panel-success" : string.Empty;
+
+            <section class="os-details mt-4 mb-4">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h3 class="os-details-title mb-0">Service order details</h3>
+                    <span class="@badgeClass">@badgeText</span>
+                </div>
+
+                <div class="os-panel os-details-panel @panelExtraClass">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="os-detail-line"><span>Id</span> @_currentSo.Id</p>
+                            <p class="os-detail-line"><span>Number</span> @_currentSo.Number</p>
+                            <p class="os-detail-line"><span>Customer Id</span> @_currentSo.CustomerId</p>
+                            <p class="os-detail-line"><span>Status</span> @_currentSo.Status</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="os-detail-line"><span>Opened at (UTC)</span> @_currentSo.OpenedAt</p>
+                            <p class="os-detail-line"><span>Price</span> @_currentSo.Price</p>
+                            <p class="os-detail-line"><span>Coin</span> @_currentSo.Coin</p>
+                            <p class="os-detail-line"><span>Updated price at</span> @_currentSo.UpdatedPriceAt</p>
+                            <p class="os-detail-line"><span>Started at</span> @_currentSo.StartedAt</p>
+                            <p class="os-detail-line"><span>Finished at</span> @_currentSo.FinishedAt</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Status / Price -->
+            <div class="row g-4 os-form-row mt-2">
+                <!-- Change status -->
+                <div class="col-lg-6">
+                    <div class="os-panel">
+                        <h2 class="os-panel-title">Change status</h2>
+                        <p class="os-panel-subtitle">
+                            Update the status for the loaded service order.
+                        </p>
+
+                        <div class="os-field">
+                            <label class="os-label">New status</label>
+                            <select class="form-select os-input os-status-select"
+                                    @bind="_statusModel.NewStatus">
+                                <option value="">Select a status</option>
+                                @foreach (var s in Enum.GetValues<ServiceOrderStatus>())
+                                {
+                                    <option value="@s">@GetStatusLabel(s)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <button class="btn os-btn-secondary mt-3"
+                                @onclick="ChangeStatusAsync">
+                            Change status
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Update price -->
+                <div class="col-lg-6">
+                    <div class="os-panel">
+                        <h2 class="os-panel-title">Update price</h2>
+                        <p class="os-panel-subtitle">
+                            Define or adjust the service order price.
+                        </p>
+
+                        <div class="os-field">
+                            <label class="os-label">Price</label>
+                            <input class="form-control os-input"
+                                   placeholder="0,00"
+                                   @bind="_priceModel.Price" />
+                        </div>
+
+                        <button class="btn os-btn-secondary mt-3"
+                                @onclick="UpdatePriceAsync">
+                            Update price
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Before / After -->
+            <div class="row g-4 os-form-row mt-4">
+                <!-- Before photo -->
+                <div class="col-lg-6">
+                    <div class="os-panel">
+                        <h2 class="os-panel-title">Before photo</h2>
+                        <p class="os-panel-subtitle">
+                            Upload a "before" picture for this service order.
+                        </p>
+
+                        <div class="os-field">
+                            <label class="os-label">File (JPG/PNG, max 5MB)</label>
+                            <InputFile OnChange="OnBeforeFileSelected" />
+                        </div>
+
+                        @if (_beforePreviewUrl is not null)
+                        {
+                            <div class="mt-3">
+                                <img src="@_beforePreviewUrl"
+                                     alt="Before photo preview"
+                                     class="os-photo-preview" />
+                            </div>
+                        }
+
+                        @if (_beforeFile is null)
+                        {
+                            <button class="btn os-btn-outline mt-3 me-2"
+                                    @onclick="UploadBeforeAttachmentAsync"
+                                    disabled>
+                                Upload before photo
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn os-btn-outline mt-3 me-2"
+                                    @onclick="UploadBeforeAttachmentAsync">
+                                Upload before photo
+                            </button>
+                        }
+
+                        @if (!string.IsNullOrEmpty(_beforeUploadMessage))
+                        {
+                            <p class="os-upload-success mt-2">@_beforeUploadMessage</p>
+                        }
+
+                    </div>
+                </div>
+
+                <!-- After photo -->
+                <div class="col-lg-6">
+                    <div class="os-panel">
+                        <h2 class="os-panel-title">After photo</h2>
+                        <p class="os-panel-subtitle">
+                            Upload an "after" picture for this service order.
+                        </p>
+
+                        <div class="os-field">
+                            <label class="os-label">File (JPG/PNG, max 5MB)</label>
+                            <InputFile OnChange="OnAfterFileSelected" />
+                        </div>
+
+                        @if (_afterPreviewUrl is not null)
+                        {
+                            <div class="mt-3">
+                                <img src="@_afterPreviewUrl"
+                                     alt="After photo preview"
+                                     class="os-photo-preview" />
+                            </div>
+                        }
+
+                        @if (_afterFile is null)
+                        {
+                            <button class="btn os-btn-outline mt-3 me-2"
+                                    @onclick="UploadAfterAttachmentAsync"
+                                    disabled>
+                                Upload after photo
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn os-btn-outline mt-3 me-2"
+                                    @onclick="UploadAfterAttachmentAsync">
+                                Upload after photo
+                            </button>
+                        }
+
+                        @if (!string.IsNullOrEmpty(_afterUploadMessage))
+                        {
+                            <p class="os-upload-success mt-2">@_afterUploadMessage</p>
+                        }
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attachments -->
+            <div class="row g-4 os-form-row mt-4">
+                <div class="col-12">
+                    <div class="os-panel">
+                        <h2 class="os-panel-title">Attachments</h2>
+                        <p class="os-panel-subtitle">
+                            List of all files linked to this service order.
+                        </p>
+
+                        <button class="btn os-btn-secondary mt-1 mb-3"
+                                @onclick="LoadAttachmentsAsync">
+                            Refresh attachments
+                        </button>
+
+                        @if (_attachments is not null && _attachments.Count > 0)
+                        {
+                            <div class="os-attachments-list">
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var att in _attachments)
+                                    {
+                                        <li class="os-attachment-item">
+                                            <span class="os-attachment-type">@att.Type</span>
+                                            <span class="os-attachment-name">@att.FileName</span>
+                                            <span class="os-attachment-size">
+                                                @($"{att.SizeBytes / 1024.0:F1} KB")
+                                            </span>
+                                            <span class="os-attachment-date">@att.UploadedAt</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted mt-3 mb-0">No attachments loaded.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Open / Find -->
+        <div class="row g-4 os-form-row mt-4">
             <!-- Open service order -->
             <div class="col-lg-6">
                 <div class="os-panel">
@@ -85,41 +316,31 @@
                 </div>
             </div>
         </div>
-
-        @if (_currentSo is not null)
-        {
-            <section class="os-details mt-5">
-                <h3 class="os-details-title">Service order details</h3>
-                <div class="os-panel os-details-panel">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <p class="os-detail-line"><span>Id</span> @_currentSo.Id</p>
-                            <p class="os-detail-line"><span>Number</span> @_currentSo.Number</p>
-                            <p class="os-detail-line"><span>Customer Id</span> @_currentSo.CustomerId</p>
-                            <p class="os-detail-line"><span>Status</span> @_currentSo.Status</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="os-detail-line"><span>Opened at (UTC)</span> @_currentSo.OpenedAt</p>
-                            <p class="os-detail-line"><span>Price</span> @_currentSo.Price</p>
-                            <p class="os-detail-line"><span>Coin</span> @_currentSo.Coin</p>
-                            <p class="os-detail-line"><span>Updated price at</span> @_currentSo.UpdatedPriceAt</p>
-                            <p class="os-detail-line"><span>Started at</span> @_currentSo.StartedAt</p>
-                            <p class="os-detail-line"><span>Finished at</span> @_currentSo.FinishedAt</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        }
     </div>
 </section>
 
 @code {
     private OpenServiceOrderModel _openModel = new();
+    private ChangeStatusModel _statusModel = new();
+    private UpdatePriceModel _priceModel = new();
+
     private string? _openError;
     private string? _openSuccess;
 
     private string? _searchSoId;
     private ServiceOrderResponse? _currentSo;
+
+    private IBrowserFile? _beforeFile;
+    private IBrowserFile? _afterFile;
+    private string? _beforePreviewUrl;
+    private string? _afterPreviewUrl;
+    private string? _detailsContext;
+    private string? _beforeUploadMessage;
+    private string? _afterUploadMessage;
+
+    private List<ServiceOrderAttachmentResponse> _attachments = new();
+
+    private const long MaxFileSize = 5 * 1024 * 1024; // 5MB
 
     private sealed class OpenServiceOrderModel
     {
@@ -128,10 +349,29 @@
         public string? Price { get; set; }
     }
 
+    private sealed class ChangeStatusModel
+    {
+        public ServiceOrderStatus? NewStatus { get; set; }
+    }
+
+    private sealed class UpdatePriceModel
+    {
+        public string? Price { get; set; }
+    }
+
+    private static string GetStatusLabel(ServiceOrderStatus status) => status switch
+    {
+        ServiceOrderStatus.Open => "Open",
+        ServiceOrderStatus.InProgress => "In progress",
+        ServiceOrderStatus.Finished => "Finished",
+        _ => status.ToString()
+    };
+
     private async Task OpenServiceOrderAsync()
     {
         _openError = null;
         _openSuccess = null;
+        _currentSo = null;
 
         if (!Guid.TryParse(_openModel.CustomerId, out var customerId))
         {
@@ -159,17 +399,25 @@
                 price);
 
             var result = await Api.OpenServiceOrderAsync(req);
-            _openSuccess = $"Service order opened. Number={result.Number}, Id={result.Id}";
-
             _currentSo = await Api.GetServiceOrderByIdAsync(result.Id);
+
+            _openModel = new OpenServiceOrderModel();
+            _statusModel = new ChangeStatusModel();
+            _priceModel = new UpdatePriceModel();
+            _attachments.Clear();
+            _beforePreviewUrl = null;
+            _afterPreviewUrl = null;
+
+            _detailsContext = "opened";
+            _openSuccess = $"Service order opened. Number={result.Number}, Id={result.Id}.";
         }
-        catch (HttpRequestException ex)
-        {
-            _openError = $"Error calling API: {ex.Message}";
-        }
-        catch (Exception ex)
+        catch (ApiException ex)
         {
             _openError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _openError = "An unexpected error occurred.";
         }
     }
 
@@ -178,6 +426,11 @@
         _openError = null;
         _openSuccess = null;
         _currentSo = null;
+        _attachments.Clear();
+        _beforePreviewUrl = null;
+        _afterPreviewUrl = null;
+        _beforeUploadMessage = null;
+        _afterUploadMessage = null;
 
         if (!Guid.TryParse(_searchSoId, out var id))
         {
@@ -187,13 +440,232 @@
 
         try
         {
-            _currentSo = await Api.GetServiceOrderByIdAsync(id);
-            if (_currentSo is null)
+            var so = await Api.GetServiceOrderByIdAsync(id);
+            if (so is null)
+            {
                 _openError = "Service order not found.";
+                return;
+            }
+
+            _currentSo = so;
+            _statusModel = new ChangeStatusModel();
+            _priceModel = new UpdatePriceModel();
+            _detailsContext = "loaded";
         }
-        catch (Exception ex)
+        catch (ApiException ex)
         {
             _openError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _openError = "An unexpected error occurred.";
+        }
+    }
+
+    private async Task ChangeStatusAsync()
+    {
+        _openError = null;
+        _openSuccess = null;
+
+        if (_currentSo is null)
+        {
+            _openError = "Load a service order first.";
+            return;
+        }
+
+        if (_statusModel.NewStatus is null)
+        {
+            _openError = "Select a new status.";
+            return;
+        }
+
+        try
+        {
+            var req = new ChangeServiceOrderStatusRequest(_statusModel.NewStatus.Value);
+            _currentSo = await Api.ChangeServiceOrderStatusAsync(_currentSo.Id, req);
+            _detailsContext = "status";
+            _openSuccess = "Service order status updated.";
+        }
+        catch (ApiException ex)
+        {
+            _openError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _openError = "An unexpected error occurred.";
+        }
+    }
+
+    private async Task UpdatePriceAsync()
+    {
+        _openError = null;
+        _openSuccess = null;
+
+        if (_currentSo is null)
+        {
+            _openError = "Load a service order first.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_priceModel.Price))
+        {
+            _openError = "Price is required.";
+            return;
+        }
+
+        if (!decimal.TryParse(_priceModel.Price, out var price))
+        {
+            _openError = "Invalid price.";
+            return;
+        }
+
+        try
+        {
+            var req = new UpdateServiceOrderPriceRequest(price);
+            _currentSo = await Api.UpdateServiceOrderPriceAsync(_currentSo.Id, req);
+            _detailsContext = "price";
+            _openSuccess = "Service order price updated.";
+        }
+        catch (ApiException ex)
+        {
+            _openError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _openError = "An unexpected error occurred.";
+        }
+    }
+
+    private async Task OnBeforeFileSelected(InputFileChangeEventArgs e)
+    {
+        _beforeFile = e.File;
+        _beforePreviewUrl = await BuildPreviewDataUrlAsync(_beforeFile);
+    }
+
+    private async Task OnAfterFileSelected(InputFileChangeEventArgs e)
+    {
+        _afterFile = e.File;
+        _afterPreviewUrl = await BuildPreviewDataUrlAsync(_afterFile);
+    }
+
+    private static async Task<string> BuildPreviewDataUrlAsync(IBrowserFile file)
+    {
+        await using var stream = file.OpenReadStream(MaxFileSize);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        var base64 = Convert.ToBase64String(ms.ToArray());
+        var contentType = file.ContentType ?? "image/png";
+        return $"data:{contentType};base64,{base64}";
+    }
+
+    private async Task UploadBeforeAttachmentAsync()
+    {
+        _openError = null;
+        _openSuccess = null;
+        _beforeUploadMessage = null;
+
+        if (_currentSo is null)
+        {
+            _openError = "Load a service order first.";
+            return;
+        }
+
+        if (_beforeFile is null)
+        {
+            _openError = "Select a file to upload.";
+            return;
+        }
+
+        try
+        {
+            var fileName = _beforeFile.Name;
+
+            await using var stream = _beforeFile.OpenReadStream(MaxFileSize);
+            await Api.UploadBeforeAttachmentAsync(
+                _currentSo.Id,
+                stream,
+                fileName,
+                _beforeFile.ContentType ?? "application/octet-stream");
+
+            await LoadAttachmentsAsync();
+
+            _beforeFile = null;
+            _beforeUploadMessage = $"Before photo \"{fileName}\" uploaded successfully.";
+        }
+        catch (ApiException ex)
+        {
+            _openError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _openError = "An unexpected error occurred during upload.";
+        }
+    }
+
+    private async Task UploadAfterAttachmentAsync()
+    {
+        _openError = null;
+        _openSuccess = null;
+        _afterUploadMessage = null;
+
+        if (_currentSo is null)
+        {
+            _openError = "Load a service order first.";
+            return;
+        }
+
+        if (_afterFile is null)
+        {
+            _openError = "Select a file to upload.";
+            return;
+        }
+
+        try
+        {
+            var fileName = _afterFile.Name;
+
+            await using var stream = _afterFile.OpenReadStream(MaxFileSize);
+            await Api.UploadAfterAttachmentAsync(
+                _currentSo.Id,
+                stream,
+                fileName,
+                _afterFile.ContentType ?? "application/octet-stream");
+
+            await LoadAttachmentsAsync();
+
+            _afterFile = null;
+            _afterUploadMessage = $"After photo \"{fileName}\" uploaded successfully.";
+        }
+        catch (ApiException ex)
+        {
+            _openError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _openError = "An unexpected error occurred during upload.";
+        }
+    }
+
+    private async Task LoadAttachmentsAsync()
+    {
+        if (_currentSo is null)
+        {
+            _openError = "Load a service order first.";
+            return;
+        }
+
+        try
+        {
+            var list = await Api.GetServiceOrderAttachmentsAsync(_currentSo.Id);
+            _attachments = list.ToList();
+        }
+        catch (ApiException ex)
+        {
+            _openError = ex.Message;
+        }
+        catch (Exception)
+        {
+            _openError = "An unexpected error occurred while loading attachments.";
         }
     }
 }

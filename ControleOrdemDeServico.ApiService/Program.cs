@@ -67,12 +67,16 @@ app.UseExceptionHandler(appBuilder =>
             _ => StatusCodes.Status500InternalServerError
         };
 
+        var errorMessage = status == StatusCodes.Status500InternalServerError
+        ? "An unexpected error occurred while processing your request."
+        : ex?.Message;
+
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/json";
 
         await context.Response.WriteAsJsonAsync(new
         {
-            error = ex?.Message
+            error = errorMessage
         });
     });
 });
