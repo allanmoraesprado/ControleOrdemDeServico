@@ -20,10 +20,10 @@
     <Project Path="ControleOrdemDeServico.Domain/OsService.Domain.csproj" />
     <Project Path="ControleOrdemDeServico.Services/OsService.Services.csproj" />
   </Folder>
-  <Folder Name="/src/Test/">
-    <Project Path="ControleOrdemDeServico.Tests/OsService.Tests.csproj" />
-  </Folder>
   <Folder Name="/src/Views/">
     <Project Path="ControleOrdemDeServico.Web/OsService.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="ControleOrdemDeServico.Tests/OsService.Services.UnitTests/OsService.Services.UnitTests.csproj" />
   </Folder>
 </Solution>
