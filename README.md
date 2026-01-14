@@ -107,42 +107,56 @@ Uma ordem de serviço possui:
 - `Description` (obrigatório, máx. 500 caracteres)  
 - `Price` (opcional na abertura, não pode ser negativo)  
 - `Coin` (fixo como BRL neste desafio)  
-- `Status` (`Open`, `InProgress`, `Finished`, `Canceled`)  
+- `Status` (`Open`, `InProgress`, `Finished`)  
 - `OpenedAt`, `UpdatedPriceAt`, `StartedAt`, `FinishedAt`  
 
 Regras principais:
 
 - Só é possível abrir ordem para cliente existente.  
 - `Description` é obrigatória e limitada a 500 caracteres.  
-- `Price` não pode ser negativo.
+- `Price`:
+  - pode ser **nulo** enquanto a OS estiver em `Open` ou `InProgress`;  
+  - não pode ser negativo;  
+  - é **obrigatório** para finalizar a OS (`Finished`).
 
 ### Regras de transição de status
 
 (Implementadas em `ChangeServiceOrderStatusHandler`):
 
-- **Status inicial:** `Open`.  
+- **Status inicial:** `Open` (Aberta).  
 
-**De `Open`:**
+**De `Open` (Aberta):**
 
-- Pode ir para `InProgress` → seta `StartedAt` (se ainda nulo).  
-- Pode ir para `Canceled`.  
+- Pode ir para `InProgress` (Em Execução)  
+  - Ao fazer essa transição, `StartedAt` é preenchido se ainda estiver nulo.  
+- Tentativa de ir direto para `Finished` é rejeitada com `ConflictException`  
+  (`"Service order must be in progress before being finished."` – HTTP 409).
 
-**De `InProgress`:**
+**De `InProgress` (Em Execução):**
 
-- Pode ir para `Finished` **apenas se** `Price` estiver definido (`> 0`).  
-- Caso contrário, é lançada `ValidationException` com a mensagem  
-  `"Price is required to finish the service order."`.
+- Pode ir para `Finished` (Finalizada) **apenas se**:
+  - `Price` estiver definido;  
+  - `Price` for maior que zero.  
+- Caso contrário, é lançada `ValidationException` com mensagens como:  
+  - `"Price is required to finish the service order."`  
+  - `"Price cannot be negative."`  
+- Se `StartedAt` ainda for nulo, é preenchido com o instante atual.  
+- `FinishedAt` é preenchido no momento da finalização.
 
-**De `Finished` ou `Canceled`:**
+**De `Finished` (Finalizada):**
 
-- Qualquer alteração é rejeitada com `ConflictException` (HTTP 409).
+- Qualquer tentativa de mudança de status é rejeitada com `ConflictException` (HTTP 409):  
+  `"Finished service orders cannot change status."`
+
+---
 
 ### Atualização de preço
 
 O `UpdateServiceOrderPriceHandler`:
 
 - Garante que o preço foi informado e é positivo.  
-- Não permite alterar preço se a ordem estiver cancelada.  
+- Permite definir ou ajustar `Price` enquanto a ordem está em `Open` ou `InProgress`.  
+- **Após a OS estar em `Finished`**, qualquer tentativa de alteração de preço é rejeitada com `ConflictException` (HTTP 409).  
 - Atualiza `Price` e `UpdatedPriceAt`.
 
 ---
@@ -199,7 +213,10 @@ Body:
 { "price": 123.45 }
 ```
 
-Atualiza o preço da ordem.
+Atualiza o preço da ordem, respeitando as regras:
+
+- permitido em `Open` e `InProgress`;  
+- bloqueado em `Finished`.
 
 ### Attachments
 
@@ -237,7 +254,7 @@ Tipos customizados de exceção:
 ### ConflictException
 
 - Operação não permitida para o estado atual do recurso  
-  (por exemplo, tentar alterar o status de uma ordem já finalizada).  
+  (por exemplo, tentar alterar o status de uma ordem já finalizada ou alterar preço após `Finished`).  
 - Mapeada para **409 Conflict**.
 
 ### KeyNotFoundException / NotFoundException
@@ -320,7 +337,7 @@ O painel web em Blazor Server está em `OsService.Web`.
 
 **Service Orders**
 
-- Card principal com todos os dados da ordem e *badge* contextual:
+- Card principal com todos os dados da ordem and *badge* contextual:
   - `SERVICE ORDER OPENED`, `STATUS UPDATED`, `PRICE UPDATED`.
 - Painel de mudança de status com `select` estilizado.  
 - Painel de atualização de preço.  
@@ -439,15 +456,15 @@ Atualmente existem **31 testes**, cobrindo:
 ### `ChangeServiceOrderStatusHandler`
 
 - Ordem não encontrada;  
-- Transições proibidas (ex.: alterar ordem finalizada);  
+- Transições proibidas (por exemplo, tentar alterar uma ordem já finalizada);  
 - De `Open` → `InProgress`;  
-- De `InProgress` → `Finished` com/sem preço.
+- De `InProgress` → `Finished` com e sem preço válido.
 
 ### `UpdateServiceOrderPriceHandler`
 
 - Validação de preço;  
 - Ordem não encontrada;  
-- Rejeição quando a ordem está cancelada;  
+- Rejeição quando a ordem está **finalizada (`Finished`)**;  
 - Atualização correta de `Price` e `UpdatedPriceAt`.
 
 ### Handlers de clientes
