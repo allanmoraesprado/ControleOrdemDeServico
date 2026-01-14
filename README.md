@@ -152,9 +152,9 @@ Regras principais:
 
 ### Atualização de preço
 
-O `UpdateServiceOrderPriceHandler`:
+O `ChangeServiceOrderPriceHandler`:
 
-- Garante que o preço foi informado e é positivo.  
+- Garante que, quando o preço é informado, o valor não é negativo.  
 - Permite definir ou ajustar `Price` enquanto a ordem está em `Open` ou `InProgress`.  
 - **Após a OS estar em `Finished`**, qualquer tentativa de alteração de preço é rejeitada com `ConflictException` (HTTP 409).  
 - Atualiza `Price` e `UpdatedPriceAt`.
@@ -337,7 +337,7 @@ O painel web em Blazor Server está em `OsService.Web`.
 
 **Service Orders**
 
-- Card principal com todos os dados da ordem and *badge* contextual:
+- Card principal com todos os dados da ordem e *badge* contextual:
   - `SERVICE ORDER OPENED`, `STATUS UPDATED`, `PRICE UPDATED`.
 - Painel de mudança de status com `select` estilizado.  
 - Painel de atualização de preço.  
@@ -460,7 +460,7 @@ Atualmente existem **31 testes**, cobrindo:
 - De `Open` → `InProgress`;  
 - De `InProgress` → `Finished` com e sem preço válido.
 
-### `UpdateServiceOrderPriceHandler`
+### `ChangeServiceOrderPriceHandler`
 
 - Validação de preço;  
 - Ordem não encontrada;  
@@ -514,6 +514,7 @@ Algumas ideias para trabalhos futuros:
 - Autenticação/autorização (por exemplo, JWT) para proteger o painel.  
 - Endpoint dedicado para download de anexos (por exemplo, com URLs temporárias) em vez de servir diretamente do file system.  
 - Mais validações e unicidade forte para clientes (documento, e-mail, etc.).
+- Refinar nomes de handlers/DTOs para seguir um padrão ainda mais consistente com a semântica dos endpoints (por exemplo, `ChangeServiceOrderPriceHandler` → `UpdateServiceOrderPriceHandler`).
 
 ---
 
